@@ -5,8 +5,8 @@
   "main": "app.js",
  
   "scripts": {
-    "start": "echo 'app.js'",
-    "test": "echo 'No tests specified' && exit 0"
+    "start": "parcel index.html --open",
+    "build": "parcel build index.html --dist-dir build"
   },
  
   "dependencies": {
