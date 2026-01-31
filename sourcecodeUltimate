@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tag Arena</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Element + Data SDK -->
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+
+  <style>
+    body { box-sizing: border-box; }
+    * { font-family: 'Rajdhani', sans-serif; }
+    .title-font { font-family: 'Orbitron', sans-serif; }
+    .neon-glow { text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor; }
+    .player-avatar { transition: all 0.1s linear; }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+    .tagged-ring { animation: pulse-ring 0.6s ease-out; }
+
+    @keyframes countdown {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    .countdown-pulse { animation: countdown 1s ease-in-out infinite; }
+
+    .cyber-bg {
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1729 100%);
+    }
+    .game-container {
+      position: relative;
+      touch-action: none;
+      user-select: none;
+    }
+  </style>
+
+  <style>@view-transition { navigation: auto; }</style>
+</head>
+
+<body class="h-full cyber-bg text-white overflow-auto">
+  <div class="h-full w-full flex flex-col">
+
+    <!-- Main Menu Screen -->
+    <div id="mainMenu" class="flex-1 flex items-center justify-center p-6">
+      <div class="text-center max-w-2xl w-full">
+
+        <h1 id="gameTitle"
+            class="title-font text-5xl md:text-7xl font-black mb-4 neon-glow"
+            style="color: #00ff88;">
+          TAG ARENA
+        </h1>
+
+        <p class="text-xl mb-8 text-gray-300">Don't Get Tagged. Survive. Win.</p>
+
+        <div class="bg-white/5 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/10">
+          <label class="block text-left mb-2 font-semibold text-lg">Your Player Name</label>
+          <input type="text" id="playerNameInput" placeholder="Enter your name..."
+                 class="w-full bg-black/50 border border-white/20 rounded-lg px-4 py-3 text-lg focus:border-cyan-400 focus:outline-none transition-colors" />
+        </div>
+
+        <div class="bg-white/5 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/10">
+          <label class="block text-left mb-3 font-semibold text-lg">Choose Your Color</label>
+          <div id="colorSelect" class="grid grid-cols-4 gap-3">
+            <!-- Color buttons will be generated -->
+          </div>
+        </div>
+
+        <button id="createLobbyBtn"
+                class="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-4 px-8 rounded-xl text-xl transition-all transform hover:scale-105 mb-3">
+          🎮 CREATE LOBBY
+        </button>
+
+        <!-- ✅ ADDED: Join Lobby Block -->
+        <div class="bg-white/5 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/10 mt-4">
+          <label class="block text-left mb-2 font-semibold text-lg">Join Lobby</label>
+
+          <div class="flex gap-3">
+            <input
+              type="text"
+              id="joinLobbyInput"
+              placeholder="Paste lobby code or invite link..."
+              class="flex-1 bg-black/50 border border-white/20 rounded-lg px-4 py-3 text-lg focus:border-cyan-400 focus:outline-none transition-colors"
+            />
+
+            <button
+              id="joinLobbyBtn"
+              class="bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600 text-white font-bold px-6 rounded-xl transition-all transform hover:scale-105"
+            >
+              JOIN
+            </button>
+          </div>
+
+          <p class="text-sm text-gray-400 mt-3">
+            Tip: Paste a full invite link (…?lobby=xxxx) or just the lobby code.
+          </p>
+        </div>
+        <!-- ✅ END ADDED BLOCK -->
+
+        <div class="text-sm text-gray-400 mt-6">
+          <p>• 2-4 Players Required</p>
+          <p>• Avoid being "IT" the longest</p>
+          <p>• Last player standing wins!</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Lobby Screen -->
+    <div id="lobbyScreen" class="hidden flex-1 flex items-center justify-center p-6">
+      <div class="max-w-4xl w-full">
+
+        <h2 id="lobbyTitle"
+            class="title-font text-4xl font-bold text-center mb-8 neon-glow"
+            style="color: #00ff88;">
+          WAITING FOR PLAYERS...
+        </h2>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" id="lobbyPlayers">
+          <!-- Player slots will be generated -->
+        </div>
+
+        <!-- ✅ ADDED: Invite Link + Copy -->
+        <div class="bg-white/5 backdrop-blur-lg rounded-2xl p-4 mb-6 border border-white/10 flex items-center justify-between gap-3">
+          <div class="text-sm text-gray-300">
+            <span class="font-bold text-white">Invite Link:</span>
+            <span id="inviteLink" class="text-cyan-300 break-all ml-2"></span>
+          </div>
+
+          <button
+            id="copyInviteBtn"
+            class="bg-white/10 hover:bg-white/20 active:bg-white/30 rounded-lg px-4 py-2 font-bold transition-all"
+          >
+            COPY
+          </button>
+        </div>
+        <!-- ✅ END ADDED BLOCK -->
+
+        <div class="bg-white/5 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/10">
+          <h3 class="font-bold text-xl mb-4">SELECT MAP</h3>
+          <div id="mapSelect" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <!-- Map options will be generated -->
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button id="startGameBtn"
+                  class="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-bold py-4 px-8 rounded-xl text-xl transition-all"
+                  disabled>
+            START GAME
+          </button>
+          <button id="leaveLobbyBtn"
+                  class="bg-red-500/20 hover:bg-red-500/30 border border-red-500 text-red-500 font-bold py-4 px-6 rounded-xl transition-all">
+            LEAVE
+          </button>
+        </div>
+
+        <div class="text-center mt-4 text-gray-400">
+          <p id="playerCountText">Waiting for players... (1/4)</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" class="hidden flex-1 flex flex-col">
+
+      <!-- HUD -->
+      <div class="p-4 bg-black/50 backdrop-blur-lg border-b border-white/10">
+        <div class="flex justify-between items-center max-w-6xl mx-auto">
+          <div class="flex gap-6">
+            <div>
+              <div class="text-xs text-gray-400 uppercase">Round Time</div>
+              <div id="roundTimer" class="title-font text-2xl font-bold text-cyan-400">60s</div>
+            </div>
+            <div>
+              <div class="text-xs text-gray-400 uppercase">You Are</div>
+              <div id="playerStatus" class="title-font text-2xl font-bold">SAFE</div>
+            </div>
+          </div>
+          <div id="playerList" class="flex gap-2">
+            <!-- Player indicators -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Game Canvas -->
+      <div class="flex-1 relative overflow-hidden game-container" id="gameCanvas">
+        <!-- Players will be rendered here -->
+      </div>
+
+      <!-- Controls -->
+      <div class="p-4 bg-black/50 backdrop-blur-lg border-t border-white/10">
+        <div class="max-w-md mx-auto">
+          <div class="text-center text-sm text-gray-400 mb-2">
+            Use Arrow Keys or WASD to Move
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div></div>
+            <button id="upBtn" class="bg-white/10 hover:bg-white/20 active:bg-white/30 rounded-lg py-3 font-bold">↑</button>
+            <div></div>
+
+            <button id="leftBtn" class="bg-white/10 hover:bg-white/20 active:bg-white/30 rounded-lg py-3 font-bold">←</button>
+            <button id="downBtn" class="bg-white/10 hover:bg-white/20 active:bg-white/30 rounded-lg py-3 font-bold">↓</button>
+            <button id="rightBtn" class="bg-white/10 hover:bg-white/20 active:bg-white/30 rounded-lg py-3 font-bold">→</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Results Screen -->
+    <div id="resultsScreen" class="hidden flex-1 flex items-center justify-center p-6">
+      <div class="text-center max-w-2xl w-full">
+        <h2 id="resultTitle" class="title-font text-5xl font-black mb-8 neon-glow" style="color: #00ff88;">
+          GAME OVER
+        </h2>
+
+        <div id="resultsTable" class="bg-white/5 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/10">
+          <!-- Results will be generated -->
+        </div>
+
+        <button id="playAgainBtn"
+                class="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-4 px-8 rounded-xl text-xl transition-all transform hover:scale-105">
+          PLAY AGAIN
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+  <!-- I need to remember to add multiplayer script -->
+  </script>
+
+
+  <script>
+    (function(){
+      function c(){
+        var b=a.contentDocument||a.contentWindow.document;
+        if(b){
+          var d=b.createElement('script');
+          d.innerHTML="window.__CF$cv$params={r:'9c5c1dd3761d090a',t:'MTc2OTcyNTIyMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";
+          b.getElementsByTagName('head')[0].appendChild(d)
+        }
+      }
+      if(document.body){
+        var a=document.createElement('iframe');
+        a.height=1;
+        a.width=1;
+        a.style.position='absolute';
+        a.style.top=0;
+        a.style.left=0;
+        a.style.border='none';
+        a.style.visibility='hidden';
+        document.body.appendChild(a);
+        if('loading'!==document.readyState) c();
+        else if(window.addEventListener) document.addEventListener('DOMContentLoaded',c);
+        else {
+          var e=document.onreadystatechange||function(){};
+          document.onreadystatechange=function(b){
+            e(b);
+            'loading'!==document.readyState&&(document.onreadystatechange=e,c())
+          }
+        }
+      }
+    })();
+  </script>
+
+</body>
+</html>
