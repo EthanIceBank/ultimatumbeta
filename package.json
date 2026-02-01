@@ -5,11 +5,10 @@
   "main": "app.js",
  
   "scripts": {
-    "start": "parcel index.html --open",  
-    "build": "parcel build index.html --dist-dir build",  
-    "deploy": "amplify publish"  
+    "start": "npx parcel index.html --open",
+    "build": "npx parcel build index.html --dist-dir build",
+    "deploy": "amplify publish"
   },
- 
   "dependencies": {
     "ajv": "^8.17.1",
     "json5": "^2.2.3",
