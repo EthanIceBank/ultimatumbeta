@@ -5,9 +5,9 @@
   "main": "app.js",
  
   "scripts": {
-    "start": "parcel index.html --open",  // For local dev server
-    "build": "parcel build index.html --dist-dir build",  // For production build
-    "deploy": "amplify publish"  // Optional: Quick scri
+    "start": "parcel index.html --open",  
+    "build": "parcel build index.html --dist-dir build",  
+    "deploy": "amplify publish"  
   },
  
   "dependencies": {
@@ -18,7 +18,7 @@
   
   }
   "devDependencies": {
-    "parcel": "^2.12.0"  // For bundling/building
+    "parcel": "^2.12.0" 
   },
   "author": "Ethan",
   "license": "Open",  
@@ -31,9 +31,9 @@
     "tag-arena",
     "aws-amplify",
     "real-time"
-  ],  // Helps with discoverability if published to npm
+  ], 
   "browserslist": [
-    "defaults"  // Tells Parcel which browsers to target for compatibility
+    "defaults"  
   
   ]
 
