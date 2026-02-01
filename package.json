@@ -5,8 +5,9 @@
   "main": "app.js",
  
   "scripts": {
-    "start": "parcel index.html --open",
-    "build": "parcel build index.html --dist-dir build"
+    "start": "parcel index.html --open",  // For local dev server
+    "build": "parcel build index.html --dist-dir build",  // For production build
+    "deploy": "amplify publish"  // Optional: Quick scri
   },
  
   "dependencies": {
@@ -16,4 +17,25 @@
     "aws-amplify": "^6.6.4"
   
   }
+  "devDependencies": {
+    "parcel": "^2.12.0"  // For bundling/building
+  },
+  "author": "Ethan",
+  "license": "Open",  
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EthanIceBank/ultimatumbeta.git" 
+  },
+  "keywords": [
+    "multiplayer-game",
+    "tag-arena",
+    "aws-amplify",
+    "real-time"
+  ],  // Helps with discoverability if published to npm
+  "browserslist": [
+    "defaults"  // Tells Parcel which browsers to target for compatibility
+  
+  ]
+
+  
 }
