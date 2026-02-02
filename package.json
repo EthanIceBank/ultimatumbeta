@@ -2,7 +2,7 @@
   "name": "ulatimatum-pack",
   "version": "1.0.0",
   "description": "Real-time multiplayer tag game",
-  "main": "app.js",
+  "main": "index.html",
  
   "scripts": {
     "start": "npx parcel index.html --open",
