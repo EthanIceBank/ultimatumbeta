@@ -232,8 +232,7 @@ const socket = io();
     }
 
     socket.on('error', (msg) => alert(msg));
-  </script>
-  <script>
+  
     (function(){
       function c(){
         var b=a.contentDocument||a.contentWindow.document;
