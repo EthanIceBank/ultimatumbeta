@@ -1,4 +1,4 @@
-const socket = io('http://http://18.212.232.75:3000');
+const socket = io('http://18.212.232.75:3000');
     let myPlayer = { name: '', color: '' };
     let currentLobby = '';
     let isHost = false;
