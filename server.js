@@ -224,21 +224,22 @@ io.on('connection', (socket) => {
         io.to(code).emit('positionUpdate', { id: p.id, position: p.position });
       });
 
-      // Tag detection
+      // Tag detection — IT touches a safe player → swap
       const itPlayer = players.find((p) => p.it);
       if (itPlayer) {
-        players.forEach((p) => {
-          if (p.it) return;
-          if (distance(itPlayer, p) < TAG_DISTANCE) {
-            itPlayer.it = false;
-            p.it        = true;
-            io.to(code).emit('tag', { from: itPlayer.id, to: p.id });
-          }
-        });
-      }
+        // Accumulate tagged time BEFORE potentially swapping
+        itPlayer.taggedTime += TICK_RATE / 1000;
 
-      const currentIt = players.find((p) => p.it);
-      if (currentIt) currentIt.taggedTime += TICK_RATE / 1000;
+        for (const p of players) {
+          if (p.it) continue;
+          if (distance(itPlayer, p) < TAG_DISTANCE) {
+            itPlayer.it = false;   // tagger becomes safe
+            p.it        = true;    // tagged player becomes IT
+            io.to(code).emit('tag', { from: itPlayer.id, to: p.id });
+            break; // only one tag per tick
+          }
+        }
+      }
 
     }, TICK_RATE);
 
