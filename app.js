@@ -1,4 +1,4 @@
-const socket = io();
+const socket = io("");
     let myPlayer = { name: '', color: '' };
     let currentLobby = '';
     let isHost = false;
