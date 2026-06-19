@@ -360,24 +360,50 @@ socket.on('gameEnd', (players) => {
   switchScreen('resultsScreen');
   const resultsTable = document.getElementById('resultsTable');
   resultsTable.innerHTML = '';
+
+  // Sort ascending — least tagged time = winner
   players.sort((a, b) => a.taggedTime - b.taggedTime);
-  const medals = ['🥇', '🥈', '🥉'];
+  const winner = players[0];
+  const medals = ['🥇', '🥈', '🥉', '💀'];
+
+  // Header row
+  const header = document.createElement('div');
+  header.style.cssText = `display:flex;justify-content:space-between;padding:0 0 10px;border-bottom:2px solid rgba(255,255,255,0.2);margin-bottom:4px;font-size:13px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px`;
+  header.innerHTML = `<span>Player</span><span>Time as IT</span>`;
+  resultsTable.appendChild(header);
+
   players.forEach((p, i) => {
     const colorHex = colors.find(c => c.name === p.color)?.bg || '#888';
+    const isMe = p.id === socket.id;
+    const isTopWinner = i === 0;
     const div = document.createElement('div');
-    div.style.cssText = `display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.1)`;
+    div.style.cssText = `
+      display:flex;justify-content:space-between;align-items:center;
+      padding:14px 12px;
+      margin: 4px 0;
+      border-radius:10px;
+      border:1px solid ${isTopWinner ? '#00ff88' : 'rgba(255,255,255,0.08)'};
+      background:${isTopWinner ? 'rgba(0,255,136,0.07)' : isMe ? 'rgba(255,255,255,0.04)' : 'transparent'};
+    `;
     div.innerHTML = `
       <div style="display:flex;align-items:center;gap:12px">
-        <span style="font-size:22px">${medals[i] || `#${i+1}`}</span>
-        <div style="width:28px;height:28px;border-radius:50%;background:${colorHex};box-shadow:0 0 8px ${colorHex}88"></div>
-        <span style="font-weight:600;font-size:18px">${p.name}</span>
+        <span style="font-size:22px;min-width:28px">${medals[i] || `#${i+1}`}</span>
+        <div style="width:30px;height:30px;border-radius:50%;background:${colorHex};box-shadow:0 0 10px ${colorHex}88;flex-shrink:0"></div>
+        <div>
+          <span style="font-weight:700;font-size:17px;color:${isMe ? colorHex : '#fff'}">${p.name}${isMe ? ' (you)' : ''}</span>
+          ${isTopWinner ? '<div style="font-size:11px;color:#00ff88;font-weight:600;letter-spacing:1px">LEAST TIME TAGGED</div>' : ''}
+        </div>
       </div>
-      <span style="color:rgba(255,255,255,0.6);font-size:15px">Tagged: ${p.taggedTime.toFixed(1)}s</span>
+      <div style="text-align:right">
+        <div style="font-size:20px;font-weight:700;font-family:'Orbitron',sans-serif;color:${isTopWinner ? '#00ff88' : 'rgba(255,255,255,0.7)'}">${p.taggedTime.toFixed(1)}s</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.3)">as IT</div>
+      </div>
     `;
     resultsTable.appendChild(div);
   });
+
   const me = players.find((p) => p.id === socket.id);
-  const isWinner = me && players[0].id === me.id;
+  const isWinner = me && winner.id === me.id;
   const titleEl = document.getElementById('resultTitle');
   titleEl.innerText = isWinner ? 'YOU WIN! 🏆' : 'GAME OVER';
   titleEl.style.color = isWinner ? '#00ff88' : '#ff4444';
