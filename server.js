@@ -87,6 +87,7 @@ io.on('connection', (socket) => {
   function _joinLobby(socket, code, player) {
     socket.join(code);
     socket.data.lobbyCode = code;
+    socket.emit("joinedLobby", code);
 
     lobbies[code].players.push({
       id:         socket.id,
