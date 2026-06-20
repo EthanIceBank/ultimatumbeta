@@ -417,12 +417,19 @@ const keysMap = {
   right: ['ArrowRight', 'd', 'D'],
 };
 
+function isTypingInField(e) {
+  const tag = e.target.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable;
+}
+
 document.addEventListener('keydown', (e) => {
+  if (isTypingInField(e)) return; // let the user type freely in name/lobby code fields
   for (const dir in keysMap) {
     if (keysMap[dir].includes(e.key)) { e.preventDefault(); keyState[dir] = true; }
   }
 });
 document.addEventListener('keyup', (e) => {
+  if (isTypingInField(e)) return;
   for (const dir in keysMap) {
     if (keysMap[dir].includes(e.key)) keyState[dir] = false;
   }
