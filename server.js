@@ -27,250 +27,249 @@ const SPEED_PAD_DURATION   = 2000; // ms of speed boost from pad
 // Each wall: { x, y, w, h, style }
 // style drives client visuals only
 
+
 const MAZE_LAYOUTS = {
 
-  // ── arena1 : THE PIT  (stone corridors) ────────────────────────────────────
+  // ── arena1 : THE PIT (thin stone corridors, open paths) ────────────────────
   arena1: {
     obstacles: [
-      // outer frame gaps left intentionally for entries
-      {x:0,   y:0,   w:800, h:20,  style:'wall'}, // top
-      {x:0,   y:580, w:800, h:20,  style:'wall'}, // bottom
-      {x:0,   y:0,   w:20,  h:600, style:'wall'}, // left
-      {x:780, y:0,   w:20,  h:600, style:'wall'}, // right
-      // internal maze walls
-      {x:100, y:20,  w:20,  h:160, style:'wall'},
-      {x:100, y:260, w:20,  h:180, style:'wall'},
-      {x:200, y:100, w:20,  h:200, style:'wall'},
-      {x:200, y:380, w:20,  h:200, style:'wall'},
-      {x:300, y:20,  w:20,  h:120, style:'wall'},
-      {x:300, y:220, w:20,  h:160, style:'wall'},
-      {x:300, y:460, w:20,  h:120, style:'wall'},
-      {x:400, y:100, w:20,  h:160, style:'wall'},
-      {x:400, y:360, w:20,  h:140, style:'wall'},
-      {x:500, y:20,  w:20,  h:220, style:'wall'},
-      {x:500, y:340, w:20,  h:220, style:'wall'},
-      {x:600, y:100, w:20,  h:180, style:'wall'},
-      {x:600, y:380, w:20,  h:180, style:'wall'},
-      {x:680, y:20,  w:20,  h:160, style:'wall'},
-      {x:680, y:260, w:20,  h:140, style:'wall'},
-      // horizontal dividers
-      {x:20,  y:200, w:160, h:20,  style:'wall'},
-      {x:20,  y:400, w:80,  h:20,  style:'wall'},
-      {x:220, y:300, w:80,  h:20,  style:'wall'},
-      {x:320, y:160, w:80,  h:20,  style:'wall'},
-      {x:320, y:440, w:80,  h:20,  style:'wall'},
-      {x:420, y:260, w:80,  h:20,  style:'wall'},
-      {x:520, y:160, w:80,  h:20,  style:'wall'},
-      {x:520, y:440, w:80,  h:20,  style:'wall'},
-      {x:620, y:300, w:80,  h:20,  style:'wall'},
-      {x:700, y:200, w:80,  h:20,  style:'wall'},
-      {x:700, y:420, w:80,  h:20,  style:'wall'},
+      // border
+      {x:0,   y:0,   w:800, h:10,  style:'wall'},
+      {x:0,   y:590, w:800, h:10,  style:'wall'},
+      {x:0,   y:0,   w:10,  h:600, style:'wall'},
+      {x:790, y:0,   w:10,  h:600, style:'wall'},
+      // vertical dividers — thin, with generous gaps
+      {x:130, y:10,  w:10,  h:180, style:'wall'},
+      {x:130, y:260, w:10,  h:160, style:'wall'},
+      {x:130, y:490, w:10,  h:100, style:'wall'},
+      {x:260, y:100, w:10,  h:160, style:'wall'},
+      {x:260, y:330, w:10,  h:170, style:'wall'},
+      {x:390, y:10,  w:10,  h:140, style:'wall'},
+      {x:390, y:220, w:10,  h:160, style:'wall'},
+      {x:390, y:450, w:10,  h:140, style:'wall'},
+      {x:520, y:80,  w:10,  h:160, style:'wall'},
+      {x:520, y:310, w:10,  h:180, style:'wall'},
+      {x:650, y:10,  w:10,  h:200, style:'wall'},
+      {x:650, y:280, w:10,  h:160, style:'wall'},
+      {x:650, y:510, w:10,  h:80,  style:'wall'},
+      // horizontal connectors — short and thin
+      {x:10,  y:190, w:120, h:10,  style:'wall'},
+      {x:10,  y:390, w:70,  h:10,  style:'wall'},
+      {x:140, y:290, w:110, h:10,  style:'wall'},
+      {x:270, y:180, w:110, h:10,  style:'wall'},
+      {x:270, y:430, w:110, h:10,  style:'wall'},
+      {x:400, y:290, w:110, h:10,  style:'wall'},
+      {x:530, y:190, w:110, h:10,  style:'wall'},
+      {x:530, y:430, w:110, h:10,  style:'wall'},
+      {x:660, y:290, w:120, h:10,  style:'wall'},
+      {x:700, y:430, w:90,  h:10,  style:'wall'},
     ],
     speedPads: [
-      {x:150, y:80,  dir:'right'},
-      {x:450, y:500, dir:'left'},
-      {x:650, y:80,  dir:'down'},
+      {x:195, y:60,  dir:'right'},
+      {x:455, y:520, dir:'left'},
+      {x:715, y:60,  dir:'down'},
     ],
     jumpPads: [
-      {x:240, y:220, teleport:{x:540, y:220}},
-      {x:540, y:380, teleport:{x:240, y:380}},
+      {x:195, y:370, teleport:{x:585, y:200}},
+      {x:585, y:430, teleport:{x:195, y:200}},
     ],
   },
 
-  // ── arena2 : NEON CITY  (city blocks) ──────────────────────────────────────
+  // ── arena2 : NEON CITY (slim building blocks, wide streets) ────────────────
   arena2: {
     obstacles: [
-      {x:0,   y:0,   w:800, h:20,  style:'pillar'},
-      {x:0,   y:580, w:800, h:20,  style:'pillar'},
-      {x:0,   y:0,   w:20,  h:600, style:'pillar'},
-      {x:780, y:0,   w:20,  h:600, style:'pillar'},
-      // city blocks — wide rectangles like buildings
-      {x:60,  y:60,  w:120, h:120, style:'pillar'},
-      {x:260, y:60,  w:80,  h:200, style:'pillar'},
-      {x:440, y:60,  w:200, h:80,  style:'pillar'},
-      {x:700, y:60,  w:60,  h:160, style:'pillar'},
-      {x:60,  y:260, w:80,  h:80,  style:'pillar'},
-      {x:200, y:320, w:120, h:80,  style:'pillar'},
-      {x:380, y:220, w:80,  h:160, style:'pillar'},
-      {x:540, y:220, w:160, h:60,  style:'pillar'},
-      {x:700, y:280, w:60,  h:120, style:'pillar'},
-      {x:60,  y:420, w:160, h:80,  style:'pillar'},
-      {x:300, y:460, w:200, h:80,  style:'pillar'},
-      {x:560, y:420, w:80,  h:140, style:'pillar'},
-      {x:700, y:460, w:60,  h:100, style:'pillar'},
-      // neon dividers
-      {x:160, y:160, w:80,  h:20,  style:'pillar'},
-      {x:360, y:160, w:60,  h:20,  style:'pillar'},
-      {x:460, y:300, w:80,  h:20,  style:'pillar'},
+      // border
+      {x:0,   y:0,   w:800, h:10,  style:'pillar'},
+      {x:0,   y:590, w:800, h:10,  style:'pillar'},
+      {x:0,   y:0,   w:10,  h:600, style:'pillar'},
+      {x:790, y:0,   w:10,  h:600, style:'pillar'},
+      // city blocks — slimmer, wider streets
+      {x:60,  y:60,  w:80,  h:80,  style:'pillar'},
+      {x:220, y:50,  w:50,  h:120, style:'pillar'},
+      {x:360, y:60,  w:120, h:50,  style:'pillar'},
+      {x:580, y:50,  w:60,  h:90,  style:'pillar'},
+      {x:690, y:50,  w:80,  h:60,  style:'pillar'},
+      {x:60,  y:220, w:50,  h:90,  style:'pillar'},
+      {x:180, y:230, w:100, h:50,  style:'pillar'},
+      {x:370, y:200, w:50,  h:120, style:'pillar'},
+      {x:510, y:210, w:120, h:50,  style:'pillar'},
+      {x:690, y:200, w:80,  h:90,  style:'pillar'},
+      {x:60,  y:390, w:100, h:50,  style:'pillar'},
+      {x:230, y:380, w:50,  h:120, style:'pillar'},
+      {x:360, y:400, w:120, h:50,  style:'pillar'},
+      {x:560, y:380, w:60,  h:100, style:'pillar'},
+      {x:690, y:390, w:80,  h:80,  style:'pillar'},
+      // thin neon strips
+      {x:150, y:145, w:60,  h:10,  style:'pillar'},
+      {x:440, y:155, w:80,  h:10,  style:'pillar'},
+      {x:480, y:330, w:60,  h:10,  style:'pillar'},
     ],
     speedPads: [
-      {x:170, y:80,  dir:'right'},
-      {x:660, y:500, dir:'up'},
-      {x:350, y:350, dir:'right'},
+      {x:310, y:120, dir:'right'},
+      {x:310, y:470, dir:'right'},
+      {x:630, y:310, dir:'up'},
     ],
     jumpPads: [
-      {x:140, y:340, teleport:{x:640, y:140}},
-      {x:640, y:340, teleport:{x:140, y:140}},
+      {x:120, y:310, teleport:{x:640, y:120}},
+      {x:640, y:460, teleport:{x:120, y:120}},
     ],
   },
 
-  // ── arena3 : FROZEN LAKE  (ice sheet corridors) ─────────────────────────────
+  // ── arena3 : FROZEN LAKE (few thin ice shelves, lots of open ice) ───────────
   arena3: {
     obstacles: [
-      {x:0,   y:0,   w:800, h:20,  style:'ice'},
-      {x:0,   y:580, w:800, h:20,  style:'ice'},
-      {x:0,   y:0,   w:20,  h:600, style:'ice'},
-      {x:780, y:0,   w:20,  h:600, style:'ice'},
-      // long ice shelves
-      {x:20,  y:100, w:300, h:20,  style:'ice'},
-      {x:480, y:100, w:300, h:20,  style:'ice'},
-      {x:20,  y:200, w:200, h:20,  style:'ice'},
-      {x:380, y:200, w:200, h:20,  style:'ice'},
-      {x:660, y:200, w:120, h:20,  style:'ice'},
-      {x:20,  y:300, w:120, h:20,  style:'ice'},
-      {x:260, y:300, w:280, h:20,  style:'ice'},
-      {x:660, y:300, w:120, h:20,  style:'ice'},
-      {x:20,  y:400, w:200, h:20,  style:'ice'},
-      {x:380, y:400, w:200, h:20,  style:'ice'},
-      {x:660, y:400, w:120, h:20,  style:'ice'},
-      {x:20,  y:500, w:300, h:20,  style:'ice'},
-      {x:480, y:500, w:300, h:20,  style:'ice'},
-      // vertical ice pillars
-      {x:160, y:120, w:20,  h:80,  style:'ice'},
-      {x:400, y:120, w:20,  h:80,  style:'ice'},
-      {x:620, y:120, w:20,  h:80,  style:'ice'},
-      {x:240, y:220, w:20,  h:80,  style:'ice'},
-      {x:540, y:220, w:20,  h:80,  style:'ice'},
-      {x:160, y:420, w:20,  h:80,  style:'ice'},
-      {x:400, y:420, w:20,  h:80,  style:'ice'},
-      {x:620, y:420, w:20,  h:80,  style:'ice'},
+      // border
+      {x:0,   y:0,   w:800, h:10,  style:'ice'},
+      {x:0,   y:590, w:800, h:10,  style:'ice'},
+      {x:0,   y:0,   w:10,  h:600, style:'ice'},
+      {x:790, y:0,   w:10,  h:600, style:'ice'},
+      // sparse long shelves with big gaps
+      {x:10,  y:130, w:220, h:10,  style:'ice'},
+      {x:350, y:130, w:200, h:10,  style:'ice'},
+      {x:660, y:130, w:130, h:10,  style:'ice'},
+      {x:10,  y:280, w:140, h:10,  style:'ice'},
+      {x:240, y:280, w:200, h:10,  style:'ice'},
+      {x:560, y:280, w:220, h:10,  style:'ice'},
+      {x:10,  y:430, w:220, h:10,  style:'ice'},
+      {x:350, y:430, w:200, h:10,  style:'ice'},
+      {x:660, y:430, w:130, h:10,  style:'ice'},
+      // short vertical connectors
+      {x:220, y:140, w:10,  h:80,  style:'ice'},
+      {x:550, y:140, w:10,  h:80,  style:'ice'},
+      {x:380, y:290, w:10,  h:80,  style:'ice'},
+      {x:220, y:360, w:10,  h:80,  style:'ice'},
+      {x:550, y:360, w:10,  h:80,  style:'ice'},
     ],
     speedPads: [
-      {x:340, y:60,  dir:'right'},
-      {x:340, y:520, dir:'right'},
-      {x:60,  y:340, dir:'down'},
+      {x:390, y:60,  dir:'right'},
+      {x:390, y:510, dir:'right'},
+      {x:60,  y:360, dir:'down'},
     ],
     jumpPads: [
-      {x:700, y:150, teleport:{x:60,  y:450}},
-      {x:60,  y:150, teleport:{x:700, y:450}},
+      {x:700, y:200, teleport:{x:60,  y:490}},
+      {x:60,  y:200, teleport:{x:700, y:490}},
     ],
   },
 
-  // ── arena4 : VOLCANO  (lava rock maze) ─────────────────────────────────────
+  // ── arena4 : VOLCANO (smaller rocks, wide lava channels) ───────────────────
   arena4: {
     obstacles: [
-      {x:0,   y:0,   w:800, h:20,  style:'rock'},
-      {x:0,   y:580, w:800, h:20,  style:'rock'},
-      {x:0,   y:0,   w:20,  h:600, style:'rock'},
-      {x:780, y:0,   w:20,  h:600, style:'rock'},
-      // chunky rock formations
-      {x:80,  y:80,  w:80,  h:80,  style:'rock'},
-      {x:240, y:60,  w:60,  h:160, style:'rock'},
-      {x:380, y:80,  w:160, h:60,  style:'rock'},
-      {x:620, y:60,  w:80,  h:100, style:'rock'},
-      {x:80,  y:240, w:60,  h:120, style:'rock'},
-      {x:220, y:220, w:100, h:60,  style:'rock'},
-      {x:420, y:220, w:60,  h:120, style:'rock'},
-      {x:560, y:200, w:140, h:60,  style:'rock'},
-      {x:700, y:220, w:60,  h:120, style:'rock'},
-      {x:80,  y:440, w:100, h:80,  style:'rock'},
-      {x:260, y:420, w:60,  h:140, style:'rock'},
-      {x:380, y:460, w:160, h:60,  style:'rock'},
-      {x:560, y:420, w:80,  h:100, style:'rock'},
-      {x:700, y:460, w:60,  h:80,  style:'rock'},
-      // lava channel dividers
-      {x:160, y:160, w:80,  h:20,  style:'rock'},
-      {x:340, y:340, w:80,  h:20,  style:'rock'},
-      {x:560, y:340, w:80,  h:20,  style:'rock'},
-      {x:160, y:360, w:80,  h:20,  style:'rock'},
+      // border
+      {x:0,   y:0,   w:800, h:10,  style:'rock'},
+      {x:0,   y:590, w:800, h:10,  style:'rock'},
+      {x:0,   y:0,   w:10,  h:600, style:'rock'},
+      {x:790, y:0,   w:10,  h:600, style:'rock'},
+      // rock formations — smaller, well spaced
+      {x:70,  y:70,  w:60,  h:60,  style:'rock'},
+      {x:220, y:60,  w:50,  h:100, style:'rock'},
+      {x:370, y:70,  w:100, h:50,  style:'rock'},
+      {x:570, y:60,  w:60,  h:70,  style:'rock'},
+      {x:690, y:60,  w:70,  h:60,  style:'rock'},
+      {x:60,  y:240, w:50,  h:100, style:'rock'},
+      {x:200, y:250, w:80,  h:50,  style:'rock'},
+      {x:380, y:230, w:50,  h:100, style:'rock'},
+      {x:530, y:240, w:100, h:50,  style:'rock'},
+      {x:700, y:230, w:60,  h:110, style:'rock'},
+      {x:70,  y:450, w:80,  h:60,  style:'rock'},
+      {x:230, y:440, w:50,  h:100, style:'rock'},
+      {x:370, y:460, w:100, h:50,  style:'rock'},
+      {x:560, y:440, w:70,  h:80,  style:'rock'},
+      {x:690, y:450, w:70,  h:60,  style:'rock'},
+      // thin lava dividers
+      {x:150, y:170, w:60,  h:10,  style:'rock'},
+      {x:470, y:360, w:60,  h:10,  style:'rock'},
+      {x:150, y:380, w:60,  h:10,  style:'rock'},
     ],
     speedPads: [
-      {x:320, y:160, dir:'right'},
-      {x:640, y:380, dir:'up'},
-      {x:160, y:500, dir:'right'},
+      {x:310, y:160, dir:'right'},
+      {x:640, y:390, dir:'up'},
+      {x:160, y:530, dir:'right'},
     ],
     jumpPads: [
-      {x:320, y:480, teleport:{x:320, y:80}},
-      {x:480, y:80,  teleport:{x:480, y:480}},
+      {x:310, y:510, teleport:{x:310, y:80}},
+      {x:470, y:80,  teleport:{x:470, y:510}},
     ],
   },
 
-  // ── arena5 : THE VOID  (dark symmetrical labyrinth) ────────────────────────
+  // ── arena5 : THE VOID (symmetric, clear ghost paths, safe spawns) ───────────
   arena5: {
     obstacles: [
-      {x:0,   y:0,   w:800, h:20,  style:'void'},
-      {x:0,   y:580, w:800, h:20,  style:'void'},
-      {x:0,   y:0,   w:20,  h:600, style:'void'},
-      {x:780, y:0,   w:20,  h:600, style:'void'},
-      // symmetric void spires
-      {x:80,  y:80,  w:20,  h:200, style:'void'},
-      {x:700, y:80,  w:20,  h:200, style:'void'},
-      {x:80,  y:320, w:20,  h:200, style:'void'},
-      {x:700, y:320, w:20,  h:200, style:'void'},
-      {x:160, y:80,  w:200, h:20,  style:'void'},
-      {x:440, y:80,  w:200, h:20,  style:'void'},
-      {x:160, y:500, w:200, h:20,  style:'void'},
-      {x:440, y:500, w:200, h:20,  style:'void'},
-      {x:160, y:160, w:20,  h:160, style:'void'},
-      {x:620, y:160, w:20,  h:160, style:'void'},
-      {x:160, y:280, w:120, h:20,  style:'void'},
-      {x:520, y:280, w:120, h:20,  style:'void'},
-      {x:260, y:200, w:20,  h:200, style:'void'},
-      {x:520, y:200, w:20,  h:200, style:'void'},
-      {x:300, y:200, w:200, h:20,  style:'void'},
-      {x:300, y:380, w:200, h:20,  style:'void'},
-      // centre cross
-      {x:360, y:260, w:80,  h:20,  style:'void'},
-      {x:390, y:240, w:20,  h:120, style:'void'},
+      // border
+      {x:0,   y:0,   w:800, h:10,  style:'void'},
+      {x:0,   y:590, w:800, h:10,  style:'void'},
+      {x:0,   y:0,   w:10,  h:600, style:'void'},
+      {x:790, y:0,   w:10,  h:600, style:'void'},
+      // outer ring segments — gaps at cardinals so ghost can't get trapped
+      {x:80,  y:80,  w:10,  h:160, style:'void'},
+      {x:710, y:80,  w:10,  h:160, style:'void'},
+      {x:80,  y:360, w:10,  h:160, style:'void'},
+      {x:710, y:360, w:10,  h:160, style:'void'},
+      {x:80,  y:80,  w:160, h:10,  style:'void'},
+      {x:560, y:80,  w:160, h:10,  style:'void'},
+      {x:80,  y:510, w:160, h:10,  style:'void'},
+      {x:560, y:510, w:160, h:10,  style:'void'},
+      // inner cross arms — thin, open centre
+      {x:200, y:200, w:10,  h:140, style:'void'},
+      {x:590, y:200, w:10,  h:140, style:'void'},
+      {x:200, y:200, w:140, h:10,  style:'void'},
+      {x:460, y:200, w:140, h:10,  style:'void'},
+      {x:200, y:390, w:140, h:10,  style:'void'},
+      {x:460, y:390, w:140, h:10,  style:'void'},
+      {x:200, y:260, w:10,  h:140, style:'void'},
+      {x:590, y:260, w:10,  h:140, style:'void'},
+      // centre marker — small, passable around
+      {x:375, y:275, w:50,  h:10,  style:'void'},
+      {x:395, y:255, w:10,  h:90,  style:'void'},
     ],
     speedPads: [
-      {x:100, y:300, dir:'down'},
-      {x:680, y:300, dir:'up'},
-      {x:390, y:430, dir:'right'},
+      {x:130, y:300, dir:'down'},
+      {x:650, y:300, dir:'up'},
+      {x:380, y:460, dir:'right'},
     ],
     jumpPads: [
-      {x:100, y:540, teleport:{x:680, y:60}},
-      {x:680, y:540, teleport:{x:100, y:60}},
+      {x:130, y:540, teleport:{x:650, y:60}},
+      {x:650, y:540, teleport:{x:130, y:60}},
     ],
   },
 
-  // ── arena6 : JUNGLE  (dense organic maze) ──────────────────────────────────
+  // ── arena6 : JUNGLE (smaller canopy clusters, clear paths between) ──────────
   arena6: {
     obstacles: [
-      {x:0,   y:0,   w:800, h:20,  style:'tree'},
-      {x:0,   y:580, w:800, h:20,  style:'tree'},
-      {x:0,   y:0,   w:20,  h:600, style:'tree'},
-      {x:780, y:0,   w:20,  h:600, style:'tree'},
-      // jungle canopy clusters (round-ish via radius in client)
-      {x:60,  y:60,  w:100, h:100, style:'tree'},
-      {x:220, y:60,  w:60,  h:160, style:'tree'},
-      {x:360, y:60,  w:100, h:80,  style:'tree'},
-      {x:540, y:40,  w:80,  h:120, style:'tree'},
-      {x:680, y:60,  w:80,  h:80,  style:'tree'},
-      {x:40,  y:220, w:80,  h:120, style:'tree'},
-      {x:180, y:240, w:120, h:60,  style:'tree'},
-      {x:360, y:200, w:60,  h:120, style:'tree'},
-      {x:500, y:220, w:100, h:80,  style:'tree'},
-      {x:680, y:200, w:80,  h:140, style:'tree'},
-      {x:60,  y:400, w:80,  h:140, style:'tree'},
-      {x:200, y:420, w:120, h:80,  style:'tree'},
-      {x:380, y:380, w:80,  h:120, style:'tree'},
-      {x:520, y:420, w:140, h:60,  style:'tree'},
-      {x:700, y:400, w:60,  h:140, style:'tree'},
-      // vines / branches
-      {x:160, y:160, w:60,  h:20,  style:'tree'},
-      {x:460, y:160, w:80,  h:20,  style:'tree'},
-      {x:280, y:340, w:80,  h:20,  style:'tree'},
-      {x:620, y:340, w:60,  h:20,  style:'tree'},
+      // border
+      {x:0,   y:0,   w:800, h:10,  style:'tree'},
+      {x:0,   y:590, w:800, h:10,  style:'tree'},
+      {x:0,   y:0,   w:10,  h:600, style:'tree'},
+      {x:790, y:0,   w:10,  h:600, style:'tree'},
+      // canopy clusters — smaller, well spaced, round via large radius
+      {x:70,  y:70,  w:70,  h:70,  style:'tree'},
+      {x:240, y:60,  w:50,  h:100, style:'tree'},
+      {x:390, y:60,  w:80,  h:60,  style:'tree'},
+      {x:560, y:50,  w:60,  h:80,  style:'tree'},
+      {x:690, y:60,  w:70,  h:70,  style:'tree'},
+      {x:50,  y:240, w:60,  h:90,  style:'tree'},
+      {x:185, y:250, w:90,  h:50,  style:'tree'},
+      {x:370, y:220, w:50,  h:100, style:'tree'},
+      {x:510, y:230, w:80,  h:60,  style:'tree'},
+      {x:690, y:220, w:70,  h:110, style:'tree'},
+      {x:60,  y:420, w:70,  h:100, style:'tree'},
+      {x:210, y:430, w:90,  h:60,  style:'tree'},
+      {x:380, y:400, w:60,  h:100, style:'tree'},
+      {x:530, y:430, w:100, h:50,  style:'tree'},
+      {x:700, y:410, w:60,  h:110, style:'tree'},
+      // thin vines
+      {x:160, y:170, w:50,  h:10,  style:'tree'},
+      {x:460, y:170, w:60,  h:10,  style:'tree'},
+      {x:280, y:350, w:60,  h:10,  style:'tree'},
+      {x:620, y:345, w:50,  h:10,  style:'tree'},
     ],
     speedPads: [
-      {x:300, y:120, dir:'right'},
-      {x:300, y:460, dir:'right'},
-      {x:680, y:300, dir:'up'},
+      {x:310, y:140, dir:'right'},
+      {x:310, y:490, dir:'right'},
+      {x:630, y:340, dir:'up'},
     ],
     jumpPads: [
-      {x:140, y:300, teleport:{x:640, y:300}},
-      {x:640, y:480, teleport:{x:140, y:100}},
+      {x:130, y:340, teleport:{x:620, y:340}},
+      {x:620, y:510, teleport:{x:130, y:100}},
     ],
   },
 };
@@ -320,12 +319,12 @@ function broadcastLobbyPlayers(c) { io.to(c).emit('playersUpdate', getLobbyPlaye
 
 // Spawn points per map (handpicked open spots)
 const SPAWN_POINTS = {
-  arena1: [{x:40,y:40},{x:720,y:40},{x:40,y:520},{x:720,y:520}],
-  arena2: [{x:40,y:40},{x:700,y:40},{x:40,y:500},{x:700,y:500}],
-  arena3: [{x:40,y:40},{x:720,y:40},{x:40,y:520},{x:720,y:520}],
-  arena4: [{x:40,y:40},{x:700,y:40},{x:40,y:500},{x:700,y:500}],
-  arena5: [{x:100,y:280},{x:660,y:280},{x:380,y:100},{x:380,y:480}],
-  arena6: [{x:300,y:280},{x:480,y:280},{x:300,y:460},{x:480,y:100}],
+  arena1: [{x:40,y:40},{x:730,y:40},{x:40,y:540},{x:730,y:540}],
+  arena2: [{x:40,y:140},{x:720,y:140},{x:40,y:470},{x:720,y:470}],
+  arena3: [{x:40,y:50},{x:720,y:50},{x:40,y:530},{x:720,y:530}],
+  arena4: [{x:40,y:160},{x:720,y:160},{x:40,y:470},{x:720,y:470}],
+  arena5: [{x:130,y:220},{x:650,y:220},{x:130,y:450},{x:650,y:450}],
+  arena6: [{x:310,y:185},{x:470,y:185},{x:310,y:510},{x:470,y:510}],
 };
 
 function getSpawn(mapId, index) {
@@ -547,14 +546,23 @@ io.on('connection', (socket) => {
     }, TICK_RATE);
 
     // ── Countdown ─────────────────────────────────────────────────────────────
-    const countdown = setInterval(() => {
-      if (!lobby.gameActive) { clearInterval(countdown); return; }
+    // Store on lobby so we can clear it on disconnect/leave and prevent double-fire
+    lobby.countdown = setInterval(() => {
+      if (!lobby.gameActive) { clearInterval(lobby.countdown); return; }
       lobby.timer--;
       io.to(code).emit('timerUpdate', lobby.timer);
       if (lobby.timer <= 0) {
-        clearInterval(countdown); clearInterval(lobby.interval);
+        clearInterval(lobby.countdown);
+        clearInterval(lobby.interval);
         lobby.gameActive = false;
-        io.to(code).emit('gameEnd', lobby.players);
+        // Send only serialisable player data, guard against empty array
+        const results = lobby.players.map(p => ({
+          id:         p.id,
+          name:       p.name,
+          color:      p.color,
+          taggedTime: typeof p.taggedTime === 'number' ? p.taggedTime : 0,
+        }));
+        io.to(code).emit('gameEnd', results);
       }
     }, 1000);
   });
@@ -580,12 +588,18 @@ io.on('connection', (socket) => {
     if (!lobby) return;
     lobby.players = lobby.players.filter(p=>p.id!==socket.id);
     socket.leave(code);
-    if (lobby.players.length===0) { clearInterval(lobby.interval); delete lobbies[code]; return; }
+    if (lobby.players.length===0) { clearInterval(lobby.interval); clearInterval(lobby.countdown); delete lobbies[code]; return; }
     if (lobby.host===socket.id) lobby.host=lobby.players[0].id;
     broadcastLobbyPlayers(code);
     if (lobby.gameActive && lobby.players.length<2) {
-      clearInterval(lobby.interval); lobby.gameActive=false;
-      io.to(code).emit('gameEnd',lobby.players);
+      clearInterval(lobby.interval);
+      clearInterval(lobby.countdown);
+      lobby.gameActive=false;
+      const results = lobby.players.map(p=>({
+        id:p.id, name:p.name, color:p.color,
+        taggedTime: typeof p.taggedTime==='number' ? p.taggedTime : 0,
+      }));
+      io.to(code).emit('gameEnd', results);
     }
   }
 });
