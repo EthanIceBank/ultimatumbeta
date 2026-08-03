@@ -5,17 +5,19 @@ const Audio = {
   _unlocked:false,
   unlock(){
     if(this._unlocked)return; this._unlocked=true;
-    ['bgMusic','sfxTag','sfxCountdown','sfxWin','sfxLose'].forEach(id=>{
+    ['menuMusic','bgMusic','sfxTag','sfxCountdown','sfxWin','sfxLose'].forEach(id=>{
       const el=document.getElementById(id); if(!el)return;
       el.volume=0; el.play().catch(()=>{}).finally(()=>{el.pause();el.currentTime=0;el.volume=1;});
     });
   },
   playBg(){ const el=document.getElementById('bgMusic'); if(!el||!el.paused)return; el.volume=0.35;el.currentTime=0;el.play().catch(()=>{}); },
   stopBg(){ const el=document.getElementById('bgMusic'); if(!el)return; el.pause();el.currentTime=0; },
-  fadeBg(dur=2000){ const el=document.getElementById('bgMusic'); if(!el)return; const step=el.volume/(dur/50); const f=setInterval(()=>{ if(el.volume>step){el.volume=Math.max(0,el.volume-step);}else{el.volume=0;el.pause();el.currentTime=0;clearInterval(f);}},50); },
+  fadeBg(dur=2000){ const el=document.getElementById('bgMusic'); if(!el||el.paused)return; const steps=dur/50; const step=el.volume/steps||0.01; const f=setInterval(()=>{ el.volume=Math.max(0,el.volume-step); if(el.volume<=0){el.volume=0;el.pause();el.currentTime=0;clearInterval(f);}},50); },
   play(id,vol=0.7){ const el=document.getElementById(id); if(!el)return; el.volume=vol;el.currentTime=0;el.play().catch(()=>{}); },
+  playMenu(){ const el=document.getElementById('menuMusic'); if(!el||!el.paused)return; el.volume=0.3;el.currentTime=0;el.play().catch(()=>{}); },
+  stopMenu(){ const el=document.getElementById('menuMusic'); if(!el)return; el.pause();el.currentTime=0; },
 };
-document.addEventListener('pointerdown',()=>Audio.unlock(),{once:true});
+document.addEventListener('pointerdown',()=>{ Audio.unlock(); setTimeout(()=>Audio.playMenu(),200); },{once:true});
 
 // ─── i18n ─────────────────────────────────────────────────────────────────────
 let currentLang = 'en';
@@ -230,6 +232,7 @@ document.getElementById('createLobbyBtn').onclick=()=>{
   socket.emit('createLobby',myPlayer);
 };
 socket.on('lobbyCreated',code=>{
+  Audio.stopMenu();
   currentLobby=code; isHost=true;
   document.getElementById('inviteLink').innerText=window.location.origin+'?lobby='+code;
   switchScreen('lobbyScreen');
@@ -246,7 +249,7 @@ document.getElementById('joinLobbyBtn').onclick=()=>{
   const code=input.match(/lobby=([\w]+)/i)?.[1]||input;
   socket.emit('joinLobby',code.toUpperCase(),myPlayer);
 };
-socket.on('joinedLobby',code=>{currentLobby=code;isHost=false;switchScreen('lobbyScreen');});
+socket.on('joinedLobby',code=>{Audio.stopMenu();currentLobby=code;isHost=false;switchScreen('lobbyScreen');});
 
 const urlParams=new URLSearchParams(window.location.search);
 if(urlParams.has('lobby')){
@@ -443,6 +446,14 @@ socket.on('gameEnd',players=>{
   Audio.fadeBg(1500); switchScreen('resultsScreen');
   const t=STRINGS[currentLang];
   const rt=document.getElementById('resultsTable'); rt.innerHTML='';
+  // Guard: ensure players is a valid non-empty array
+  if(!Array.isArray(players)||players.length===0){
+    document.getElementById('resultTitle').innerText='GAME OVER';
+    document.getElementById('resultTitle').style.color='#ff4444';
+    return;
+  }
+  // Ensure taggedTime is a number on every player
+  players.forEach(p=>{ p.taggedTime=typeof p.taggedTime==='number'?p.taggedTime:0; });
   players.sort((a,b)=>a.taggedTime-b.taggedTime);
   const winner=players[0]; const medals=['🥇','🥈','🥉','💀'];
   players.forEach((p,i)=>{
@@ -492,8 +503,8 @@ document.addEventListener('keyup',  e=>{if(isTyping(e))return;for(const d in key
 setInterval(()=>{ if(!currentLobby)return; for(const d in keyState)if(keyState[d])socket.emit('move',currentLobby,d); },50);
 
 // ─── Nav ──────────────────────────────────────────────────────────────────────
-document.getElementById('leaveLobbyBtn').onclick=()=>{ socket.emit('leaveLobby',currentLobby); Audio.stopBg(); switchScreen('mainMenu'); currentLobby=''; isHost=false; };
-document.getElementById('playAgainBtn').onclick=()=>{ switchScreen('mainMenu'); currentLobby=''; isHost=false; };
+document.getElementById('leaveLobbyBtn').onclick=()=>{ socket.emit('leaveLobby',currentLobby); Audio.stopBg(); Audio.playMenu(); switchScreen('mainMenu'); currentLobby=''; isHost=false; };
+document.getElementById('playAgainBtn').onclick=()=>{ Audio.playMenu(); switchScreen('mainMenu'); currentLobby=''; isHost=false; };
 function switchScreen(id){ ['mainMenu','lobbyScreen','gameScreen','resultsScreen'].forEach(s=>document.getElementById(s).classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
 socket.on('error',msg=>alert('Error: '+msg));
 
