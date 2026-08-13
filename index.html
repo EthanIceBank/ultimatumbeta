@@ -4,9 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ultimatum</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZlcnNpb249IjEuMSIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0idXJsKCcjZ3JhZGllbnQnKSI+PC9yZWN0PjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZGllbnQiIGdyYWRpZW50VHJhbnNmb3JtPSJyb3RhdGUoNDAgMC41IDAuNSkiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMwODA3ZjMiPjwvc3RvcD48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMxYzE1MDUiPjwvc3RvcD48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48Zz48ZyBmaWxsPSIjMDBmNmE4IiB0cmFuc2Zvcm09Im1hdHJpeCgxMi40ODc4MDQ4NzgwNDg3ODEsMCwwLDEyLjQ4NzgwNDg3ODA0ODc4MSwxNy4yMDk4Nzg1MjAyNjc3NjUsMTg3LjU0MTIyODA5NjY1OTYpIiBzdHJva2U9IiM3MDU0NWIiIHN0cm9rZS13aWR0aD0iMC4yIj48cGF0aCBkPSJNOC44MC0xNC4yMkwxMi4yMy0xNC4yMkwxMi4yMy00LjkxUTEyLjIzLTMuMzMgMTEuNTUtMi4xN1ExMC44OC0xLjAyIDkuNjItMC40MVE4LjM2IDAuMjAgNi42NCAwLjIwTDYuNjQgMC4yMFE0LjA0IDAuMjAgMi41NS0xLjE1UTEuMDUtMi41MCAxLjAzLTQuODRMMS4wMy00Ljg0TDEuMDMtMTQuMjJMNC40Ny0xNC4yMkw0LjQ3LTQuNzhRNC41My0yLjQ0IDYuNjQtMi40NEw2LjY0LTIuNDRRNy43MS0yLjQ0IDguMjUtMy4wM1E4LjgwLTMuNjEgOC44MC00LjkzTDguODAtNC45M0w4LjgwLTE0LjIyWiI+PC9wYXRoPjwvZz48L2c+PC9zdmc+">
   
   <script src="https://cdn.tailwindcss.com"></script>
-  <script type="module" src="./app.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="./app.js" defer></script>
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
 
@@ -57,17 +59,17 @@
           Ultimatum
         </h1>
 
-        <p class="text-xl mb-8 text-gray-300">Don't Get Tagged ok?. Win for me please.</p>
+        <p class="text-xl mb-8 text-gray-300"><span data-i18n="tagline">Don't Get Tagged ok?. Win for me please.</span></p>
 
         <div class="bg-white/5 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/10">
-          <label class="block text-left mb-2 font-semibold text-lg">Your Player Name</label>
-          <input type="text" id="playerNameInput" placeholder="Enter your name..."
+          <label class="block text-left mb-2 font-semibold text-lg" data-i18n="nameLabel">Your Player Name</label>
+          <input type="text" id="playerNameInput" data-i18n="namePh" placeholder="Enter your name..."
                  class="w-full bg-black/50 border border-white/20 rounded-lg px-4 py-3 text-lg focus:border-cyan-400 focus:outline-none transition-colors" />
         </div>
 
         <div class="bg-white/5 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/10">
-          <label class="block text-left mb-3 font-semibold text-lg">Choose Your Color</label>
-          <div id="colorSelect" class="grid grid-cols-4 gap-3">
+          <label class="block text-left mb-3 font-semibold text-lg" data-i18n="colorLabel">Choose Your Color</label>
+          <div id="colorSelect" style="display:flex;gap:12px;overflow-x:auto;padding:8px 4px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.2) transparent;">
             <!-- Color buttons will be generated -->
           </div>
         </div>
@@ -77,15 +79,21 @@
           🎮 CREATE LOBBY
         </button>
 
+        <button id="singlePlayerBtn"
+                class="w-full mb-3 font-bold py-4 px-8 rounded-xl text-xl transition-all transform hover:scale-105"
+                style="background:linear-gradient(to right,#0d9488,#0891b2);color:white;">
+          🤖 SINGLE PLAYER
+        </button>
+
         <!-- ✅ ADDED: Join Lobby Block -->
         <div class="bg-white/5 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/10 mt-4">
-          <label class="block text-left mb-2 font-semibold text-lg">Join Lobby</label>
+          <label class="block text-left mb-2 font-semibold text-lg" data-i18n="joinLabel">Join Lobby</label>
 
           <div class="flex gap-3">
             <input
               type="text"
               id="joinLobbyInput"
-              placeholder="Paste lobby code or invite link..."
+              data-i18n="joinPh" placeholder="Paste lobby code or invite link..."
               class="flex-1 bg-black/50 border border-white/20 rounded-lg px-4 py-3 text-lg focus:border-cyan-400 focus:outline-none transition-colors"
             />
 
@@ -98,17 +106,41 @@
           </div>
 
           <p class="text-sm text-gray-400 mt-3">
-            Tip: Paste a full invite link (…?lobby=xxxx) or just the lobby code.
+            <span data-i18n="joinTip">Tip: Paste a full invite link (…?lobby=xxxx) or just the lobby code.</span>
           </p>
         </div>
         <!-- ✅ END ADDED BLOCK -->
 
         <div class="text-sm text-gray-400 mt-6">
-          <p>• 2-4 Players Required</p>
-          <p>• Avoid being "IT" the longest</p>
-          <p>• Last player standing wins!</p>
+          <p><span data-i18n="rule1">• 2-4 Players Required</span></p>
+          <p><span data-i18n="rule2">• Avoid being "IT" the longest</span></p>
+          <p><span data-i18n="rule3">• Least time tagged wins!</span></p>
         </div>
 
+      </div>
+    </div>
+
+
+    <!-- Single Player Map Select Screen -->
+    <div id="spMapScreen" class="hidden flex-1 flex items-center justify-center p-6"
+         style="background:linear-gradient(135deg,#042f2e 0%,#0f3460 100%);">
+      <div class="max-w-5xl w-full">
+        <div class="flex items-center gap-4 mb-8">
+          <button id="spBackBtn"
+            class="text-teal-300 hover:text-white font-bold text-lg transition-colors">
+            ← Back
+          </button>
+          <h2 class="title-font text-4xl font-bold neon-glow flex-1 text-center"
+              style="color:#2dd4bf;">
+            🤖 CHOOSE YOUR ARENA
+          </h2>
+        </div>
+        <p class="text-center text-teal-200 mb-8 text-lg">
+          Survive 60 seconds against the bot — stay as safe as possible!
+        </p>
+        <div id="spMapGrid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <!-- Built by JS -->
+        </div>
       </div>
     </div>
 
@@ -119,7 +151,7 @@
         <h2 id="lobbyTitle"
             class="title-font text-4xl font-bold text-center mb-8 neon-glow"
             style="color: #00ff88;">
-          WAITING FOR PLAYERS...
+          <span data-i18n="waiting">WAITING FOR PLAYERS...</span>
         </h2>
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" id="lobbyPlayers">
@@ -129,7 +161,7 @@
         <!-- ✅ ADDED: Invite Link + Copy -->
         <div class="bg-white/5 backdrop-blur-lg rounded-2xl p-4 mb-6 border border-white/10 flex items-center justify-between gap-3">
           <div class="text-sm text-gray-300">
-            <span class="font-bold text-white">Invite Link:</span>
+            <span class="font-bold text-white" data-i18n="inviteLabel">Invite Link:</span>
             <span id="inviteLink" class="text-cyan-300 break-all ml-2"></span>
           </div>
 
@@ -143,8 +175,8 @@
         <!-- ✅ END ADDED BLOCK -->
 
         <div class="bg-white/5 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/10">
-          <h3 class="font-bold text-xl mb-4">SELECT MAP</h3>
-          <div id="mapSelect" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <h3 class="font-bold text-xl mb-4" data-i18n="mapLabel">SELECT MAP</h3>
+          <div id="mapSelect" class="grid grid-cols-2 md:grid-cols-3 gap-3">
             <!-- Map options will be generated -->
           </div>
         </div>
@@ -176,11 +208,11 @@
         <div class="flex justify-between items-center max-w-6xl mx-auto">
           <div class="flex gap-6">
             <div>
-              <div class="text-xs text-gray-400 uppercase">Round Time</div>
+              <div class="text-xs text-gray-400 uppercase"><span data-i18n="roundTime">Round Time</span></div>
               <div id="roundTimer" class="title-font text-2xl font-bold text-cyan-400">60s</div>
             </div>
             <div>
-              <div class="text-xs text-gray-400 uppercase">You Are</div>
+              <div class="text-xs text-gray-400 uppercase"><span data-i18n="youAre">You Are</span></div>
               <div id="playerStatus" class="title-font text-2xl font-bold">SAFE</div>
             </div>
           </div>
@@ -199,7 +231,7 @@
       <div class="p-4 bg-black/50 backdrop-blur-lg border-t border-white/10">
         <div class="max-w-md mx-auto">
           <div class="text-center text-sm text-gray-400 mb-2">
-            Use Arrow Keys or WASD to Move
+            <span data-i18n="moveHint">Use Arrow Keys or WASD to Move</span>
           </div>
           <div class="grid grid-cols-3 gap-2">
             <div></div>
@@ -236,5 +268,15 @@
   </div>
 
      
+
+  <!-- Audio -->
+  <audio id="spMusic"     src="/sounds/spmusic.mp3"    loop preload="auto"></audio>
+  <audio id="menuMusic"  src="/sounds/menu.mp3"    loop preload="auto"></audio>
+  <audio id="bgMusic"    src="/sounds/bgmusic.mp3"   loop preload="auto"></audio>
+  <audio id="sfxTag"     src="/sounds/tag.mp3"        preload="auto"></audio>
+  <audio id="sfxCountdown" src="/sounds/countdown.mp3" preload="auto"></audio>
+  <audio id="sfxWin"     src="/sounds/win.mp3"        preload="auto"></audio>
+  <audio id="sfxLose"    src="/sounds/lose.mp3"       preload="auto"></audio>
+
 </body>
 </html>
