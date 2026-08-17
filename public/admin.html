@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Ultimatum Admin</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;background:#0d1117;color:#e6edf3;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:44px;background:#161b22;border-bottom:1px solid #30363d;flex-shrink:0;}
+.logo{font-weight:600;font-size:14px;color:#e6edf3;letter-spacing:.5px;}
+.badge{font-size:11px;padding:2px 8px;border-radius:10px;background:#1f6feb33;color:#58a6ff;border:1px solid #1f6feb55;margin-left:8px;}
+.stats{display:flex;gap:16px;font-size:12px;color:#8b949e;}
+.dot-green{width:7px;height:7px;border-radius:50%;background:#3fb950;display:inline-block;margin-right:5px;}
+.main{display:grid;grid-template-columns:230px 1fr 250px;flex:1;overflow:hidden;}
+.col{border-right:1px solid #30363d;display:flex;flex-direction:column;overflow:hidden;}
+.col:last-child{border-right:none;}
+.col-head{padding:10px 12px;border-bottom:1px solid #30363d;font-size:11px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.count-badge{background:#1f6feb22;color:#58a6ff;font-size:10px;padding:1px 6px;border-radius:8px;}
+.scroll{overflow-y:auto;flex:1;}
+.scroll::-webkit-scrollbar{width:4px;}
+.scroll::-webkit-scrollbar-track{background:transparent;}
+.scroll::-webkit-scrollbar-thumb{background:#30363d;border-radius:2px;}
+
+/* Lobbies */
+.lobby-row{padding:10px 12px;border-bottom:1px solid #21262d;cursor:pointer;transition:background .1s;}
+.lobby-row:hover{background:#161b22;}
+.lobby-row.active{background:#1f6feb0f;border-left:2px solid #58a6ff;}
+.lobby-name{font-size:13px;font-weight:600;color:#e6edf3;margin-bottom:4px;font-family:monospace;}
+.lobby-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.chip{font-size:10px;padding:1px 6px;border-radius:8px;font-weight:500;}
+.chip-live{background:#3fb95022;color:#3fb950;border:1px solid #3fb95033;}
+.chip-wait{background:#d2992222;color:#e3b341;border:1px solid #d2992233;}
+.chip-end{background:#30363d;color:#8b949e;}
+.lobby-sub{font-size:11px;color:#8b949e;}
+
+/* Mid panel */
+.mid-head{padding:10px 14px;border-bottom:1px solid #30363d;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.mid-title{font-size:14px;font-weight:600;color:#e6edf3;}
+.mid-sub{font-size:11px;color:#8b949e;margin-top:2px;}
+.minimap-wrap{margin:12px;border-radius:8px;border:1px solid #30363d;overflow:hidden;background:#0a0e1a;flex-shrink:0;}
+#minimap{display:block;width:100%;height:160px;}
+.section-label{font-size:11px;color:#8b949e;padding:10px 14px 6px;text-transform:uppercase;letter-spacing:.8px;font-weight:600;flex-shrink:0;}
+.player-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px 14px;flex-shrink:0;}
+.p-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px;}
+.p-card.it-card{border-color:#f7853644;}
+.p-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0d1117;margin-bottom:6px;}
+.p-name{font-size:12px;font-weight:600;color:#e6edf3;}
+.it-pill{font-size:10px;padding:1px 5px;border-radius:5px;background:#f7853611;color:#f78536;border:1px solid #f7853633;margin-left:4px;}
+.p-time{font-size:20px;font-weight:600;color:#e6edf3;margin-top:4px;font-variant-numeric:tabular-nums;}
+.p-label{font-size:10px;color:#8b949e;}
+
+/* Event log */
+.event-row{display:flex;align-items:flex-start;gap:8px;padding:7px 14px;border-bottom:1px solid #21262d;}
+.ev-dot{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.ev-text{font-size:12px;color:#8b949e;flex:1;line-height:1.4;}
+.ev-time{font-size:10px;color:#484f58;white-space:nowrap;font-variant-numeric:tabular-nums;}
+
+/* Right panel */
+.machine-row{padding:10px 12px;border-bottom:1px solid #21262d;}
+.m-name{font-size:12px;font-weight:600;color:#e6edf3;margin-bottom:4px;}
+.m-ip{font-family:monospace;font-size:11px;color:#58a6ff;margin-bottom:2px;}
+.m-detail{font-size:11px;color:#8b949e;line-height:1.7;}
+.m-actions{display:flex;gap:6px;margin-top:5px;}
+.kick-btn{font-size:11px;color:#f85149;border:1px solid #f8514933;background:none;border-radius:4px;padding:2px 8px;cursor:pointer;}
+.kick-btn:hover{background:#f8514911;}
+.watch-btn{display:block;margin:12px;padding:9px 0;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;text-align:center;flex-shrink:0;}
+.watch-btn:hover{background:#388bfd;}
+.empty{padding:24px;text-align:center;color:#484f58;font-size:13px;}
+
+/* Watch mode overlay */
+#watch-overlay{display:none;position:absolute;inset:0;background:#0d1117;z-index:100;flex-direction:column;}
+#watch-overlay.open{display:flex;}
+.watch-topbar{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#161b22;border-bottom:1px solid #30363d;flex-shrink:0;}
+.watch-back{background:none;border:1px solid #30363d;color:#8b949e;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px;}
+.watch-back:hover{border-color:#58a6ff;color:#58a6ff;}
+.watch-info{font-size:13px;color:#e6edf3;font-weight:600;}
+.watch-sub{font-size:12px;color:#8b949e;}
+#watch-canvas-wrap{flex:1;overflow:hidden;position:relative;}
+#watch-canvas{width:100%;height:100%;}
+
+/* Auth overlay */
+#auth-overlay{position:fixed;inset:0;background:#0d1117;z-index:200;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+.auth-box{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:32px;width:340px;text-align:center;}
+.auth-title{font-size:18px;font-weight:600;margin-bottom:6px;}
+.auth-sub{font-size:13px;color:#8b949e;margin-bottom:20px;}
+.auth-input{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;padding:9px 12px;font-size:13px;font-family:monospace;margin-bottom:12px;}
+.auth-input:focus{outline:none;border-color:#58a6ff;}
+.auth-btn{width:100%;background:#1f6feb;border:none;border-radius:6px;color:#fff;padding:9px;font-size:13px;font-weight:600;cursor:pointer;}
+.auth-btn:hover{background:#388bfd;}
+.auth-err{font-size:12px;color:#f85149;margin-top:8px;min-height:16px;}
+</style>
+</head>
+<body>
+
+<!-- Auth overlay -->
+<div id="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-title">Admin access</div>
+    <div class="auth-sub">Enter your admin key to continue.</div>
+    <input class="auth-input" id="keyInput" type="password" placeholder="Admin key..."/>
+    <button class="auth-btn" id="authBtn">Unlock</button>
+    <div class="auth-err" id="authErr"></div>
+  </div>
+</div>
+
+<!-- Watch overlay -->
+<div id="watch-overlay">
+  <div class="watch-topbar">
+    <button class="watch-back" id="watchBack">← Back</button>
+    <div>
+      <div class="watch-info" id="watchTitle">Watching lobby</div>
+      <div class="watch-sub" id="watchSub"></div>
+    </div>
+    <div style="margin-left:auto;font-size:12px;color:#8b949e;" id="watchTimer"></div>
+  </div>
+  <div id="watch-canvas-wrap">
+    <canvas id="watch-canvas"></canvas>
+  </div>
+</div>
+
+<!-- Main UI -->
+<div class="topbar">
+  <div style="display:flex;align-items:center;">
+    <span class="logo">Ultimatum</span>
+    <span class="badge">Admin</span>
+  </div>
+  <div class="stats">
+    <span><span class="dot-green"></span><span id="statLobbies">0 lobbies</span></span>
+    <span>·</span>
+    <span id="statPlayers">0 players online</span>
+  </div>
+</div>
+
+<div class="main" style="position:relative;">
+  <!-- Left: lobby list -->
+  <div class="col">
+    <div class="col-head">Lobbies <span class="count-badge" id="lobbyCount">0</span></div>
+    <div class="scroll" id="lobbyList"><div class="empty">No active lobbies</div></div>
+  </div>
+
+  <!-- Mid: selected lobby detail -->
+  <div class="col" id="midCol">
+    <div class="mid-head">
+      <div>
+        <div class="mid-title" id="midTitle">Select a lobby</div>
+        <div class="mid-sub" id="midSub">Click a lobby on the left to inspect it</div>
+      </div>
+      <span class="chip" id="midStatus"></span>
+    </div>
+    <div class="minimap-wrap"><canvas id="minimap" width="600" height="160"></canvas></div>
+    <div class="section-label">Players</div>
+    <div class="player-grid" id="playerGrid"></div>
+    <div class="section-label">Event log</div>
+    <div class="scroll" id="eventLog"><div class="empty">No events yet</div></div>
+  </div>
+
+  <!-- Right: machine details -->
+  <div class="col">
+    <div class="col-head">Machine details</div>
+    <div class="scroll" id="machineList"><div class="empty">Select a lobby</div></div>
+    <button class="watch-btn" id="watchBtn">Watch live</button>
+  </div>
+</div>
+
+<script>
+// ── Auth ──────────────────────────────────────────────────────────────────────
+let adminKey = '';
+const authOverlay = document.getElementById('auth-overlay');
+const keyInput    = document.getElementById('keyInput');
+const authErr     = document.getElementById('authErr');
+
+// Check URL param first
+const urlKey = new URLSearchParams(window.location.search).get('key');
+if (urlKey) { adminKey = urlKey; authOverlay.style.display = 'none'; initAdmin(); }
+
+document.getElementById('authBtn').onclick = async () => {
+  const k = keyInput.value.trim();
+  if (!k) { authErr.textContent = 'Enter a key.'; return; }
+  const res = await fetch('/admin/verify?key=' + encodeURIComponent(k));
+  if (res.ok) { adminKey = k; authOverlay.style.display = 'none'; initAdmin(); }
+  else { authErr.textContent = 'Invalid key. Try again.'; }
+};
+keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('authBtn').click(); });
+
+// ── Admin core ────────────────────────────────────────────────────────────────
+const PLAYER_COLORS = {
+  red:'#ef4444',orange:'#f97316',amber:'#f59e0b',yellow:'#eab308',
+  lime:'#84cc16',green:'#22c55e',teal:'#14b8a6',cyan:'#06b6d4',
+  blue:'#3b82f6',indigo:'#6366f1',purple:'#a855f7',pink:'#ec4899',
+  rose:'#f43f5e',white:'#f1f5f9',
+};
+function hexFor(color) { return PLAYER_COLORS[color] || '#888'; }
+function initials(name) { return name.slice(0,2).toUpperCase(); }
+function fmtTime(s) { return s.toFixed(1) + 's'; }
+
+let state      = {};   // { [code]: lobby }
+let selectedCode = null;
+let socket;
+let watchCode  = null;
+let watchAnim  = null;
+let eventLogs  = {};   // { [code]: [{text,color,ts}] }
+let machineData= {};   // { [socketId]: {name,color,ip,ua,connectedAt} }
+
+const MAP_NAMES = {arena1:'The Pit',arena2:'Neon City',arena3:'Frozen Lake',arena4:'Volcano',arena5:'The Void',arena6:'Jungle'};
+const OBS_COLORS= {wall:'#475569',pillar:'#7c3aed',ice:'#0ea5e9',rock:'#b45309',void:'#1e1b4b',tree:'#15803d'};
+
+function initAdmin() {
+  socket = io({ auth: { adminKey } });
+
+  socket.on('admin:state', s => { state = s; render(); });
+  socket.on('admin:update', s => { state = s; render(); });
+  socket.on('admin:machineData', data => { machineData = data; renderMachines(); });
+
+  socket.on('admin:event', ({ code, text, color, ts }) => {
+    if (!eventLogs[code]) eventLogs[code] = [];
+    eventLogs[code].unshift({ text, color, ts });
+    if (eventLogs[code].length > 60) eventLogs[code].pop();
+    if (code === selectedCode) renderEventLog();
+  });
+
+  socket.emit('admin:join', adminKey);
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+  const lobbies = Object.values(state);
+  const totalPlayers = lobbies.reduce((s,l) => s + l.players.length, 0);
+  document.getElementById('statLobbies').textContent = lobbies.length + ' ' + (lobbies.length === 1 ? 'lobby' : 'lobbies');
+  document.getElementById('statPlayers').textContent = totalPlayers + ' players online';
+  document.getElementById('lobbyCount').textContent = lobbies.length;
+  renderLobbyList(lobbies);
+  if (selectedCode && state[selectedCode]) renderMid(state[selectedCode]);
+}
+
+function renderLobbyList(lobbies) {
+  const el = document.getElementById('lobbyList');
+  if (!lobbies.length) { el.innerHTML = '<div class="empty">No active lobbies</div>'; return; }
+  el.innerHTML = '';
+  lobbies.sort((a,b) => (b.gameActive ? 1 : 0) - (a.gameActive ? 1 : 0));
+  lobbies.forEach(l => {
+    const div = document.createElement('div');
+    div.className = 'lobby-row' + (l.code === selectedCode ? ' active' : '');
+    const chipClass = l.gameActive ? 'chip-live' : l.players.length >= 2 ? 'chip-wait' : 'chip-end';
+    const chipText  = l.gameActive ? 'Live' : l.players.length >= 2 ? 'Waiting' : 'Lobby';
+    const timerStr  = l.gameActive ? ` · ${l.timer}s left` : '';
+    div.innerHTML = `<div class="lobby-name">${l.code}</div>
+      <div class="lobby-meta">
+        <span class="chip ${chipClass}">${chipText}</span>
+        <span class="lobby-sub">${MAP_NAMES[l.map]||l.map} · ${l.players.length} player${l.players.length!==1?'s':''}${timerStr}</span>
+      </div>`;
+    div.onclick = () => { selectedCode = l.code; renderMid(l); renderMachines(); renderEventLog(); renderLobbyList(Object.values(state)); };
+    el.appendChild(div);
+  });
+}
+
+function renderMid(lobby) {
+  document.getElementById('midTitle').textContent = lobby.code + ' — ' + (MAP_NAMES[lobby.map]||lobby.map);
+  document.getElementById('midSub').textContent   = lobby.players.length + ' players · ' + (lobby.gameActive ? lobby.timer + 's remaining' : 'waiting to start');
+  const sc = document.getElementById('midStatus');
+  sc.textContent  = lobby.gameActive ? 'Live' : 'Waiting';
+  sc.className    = 'chip ' + (lobby.gameActive ? 'chip-live' : 'chip-wait');
+  renderPlayerGrid(lobby);
+  renderMinimap(lobby);
+  renderMachines();
+}
+
+function renderPlayerGrid(lobby) {
+  const el = document.getElementById('playerGrid');
+  el.innerHTML = '';
+  if (!lobby.players.length) { el.innerHTML = '<div class="empty" style="grid-column:span 2">No players</div>'; return; }
+  lobby.players.forEach(p => {
+    const hex = hexFor(p.color);
+    const card = document.createElement('div');
+    card.className = 'p-card' + (p.it ? ' it-card' : '');
+    card.innerHTML = `<div class="p-avatar" style="background:${hex}">${initials(p.name)}</div>
+      <div class="p-name">${p.name}${p.it ? '<span class="it-pill">IT</span>' : ''}</div>
+      <div class="p-label">Time as IT</div>
+      <div class="p-time">${fmtTime(p.taggedTime||0)}</div>`;
+    el.appendChild(card);
+  });
+}
+
+function renderEventLog() {
+  const el = document.getElementById('eventLog');
+  const logs = eventLogs[selectedCode] || [];
+  if (!logs.length) { el.innerHTML = '<div class="empty">No events yet</div>'; return; }
+  el.innerHTML = '';
+  logs.forEach(ev => {
+    const row = document.createElement('div');
+    row.className = 'event-row';
+    const d = new Date(ev.ts);
+    const ts = d.getMinutes().toString().padStart(2,'0') + ':' + d.getSeconds().toString().padStart(2,'0');
+    row.innerHTML = `<div class="ev-dot" style="background:${ev.color}"></div>
+      <div class="ev-text">${ev.text}</div>
+      <div class="ev-time">${ts}</div>`;
+    el.appendChild(row);
+  });
+}
+
+function renderMachines() {
+  const el = document.getElementById('machineList');
+  if (!selectedCode || !state[selectedCode]) { el.innerHTML = '<div class="empty">Select a lobby</div>'; return; }
+  const players = state[selectedCode].players;
+  el.innerHTML = '';
+  players.forEach(p => {
+    const m = machineData[p.id] || {};
+    const ua = m.ua || 'Unknown browser';
+    const ip = m.ip || 'Unknown IP';
+    const connSec = m.connectedAt ? Math.floor((Date.now() - m.connectedAt) / 1000) : 0;
+    const connStr = connSec < 60 ? connSec + 's' : Math.floor(connSec/60) + 'm ' + (connSec%60) + 's';
+    const row = document.createElement('div');
+    row.className = 'machine-row';
+    row.innerHTML = `<div class="m-name">${p.name}</div>
+      <div class="m-ip">${ip}</div>
+      <div class="m-detail">${parseUA(ua)}<br>Connected ${connStr}</div>
+      <div class="m-actions">
+        <button class="kick-btn" data-id="${p.id}">Kick</button>
+      </div>`;
+    row.querySelector('.kick-btn').onclick = () => {
+      if (confirm('Kick ' + p.name + '?')) socket.emit('admin:kick', { adminKey, socketId: p.id, code: selectedCode });
+    };
+    el.appendChild(row);
+  });
+}
+
+function parseUA(ua) {
+  let browser = 'Browser', os = 'Unknown OS';
+  if (/Chrome\//.test(ua) && !/Chromium|Edge/.test(ua)) browser = 'Chrome';
+  else if (/Firefox\//.test(ua)) browser = 'Firefox';
+  else if (/Safari\//.test(ua) && !/Chrome/.test(ua)) browser = 'Safari';
+  else if (/Edg\//.test(ua)) browser = 'Edge';
+  if (/Windows/.test(ua)) os = 'Windows';
+  else if (/Mac OS X/.test(ua) && !/iPhone|iPad/.test(ua)) os = 'macOS';
+  else if (/iPhone/.test(ua)) os = 'iOS (iPhone)';
+  else if (/iPad/.test(ua)) os = 'iOS (iPad)';
+  else if (/Android/.test(ua)) os = 'Android';
+  else if (/Linux/.test(ua)) os = 'Linux';
+  return browser + ' · ' + os;
+}
+
+// ── Minimap ───────────────────────────────────────────────────────────────────
+let minimapAnim = null;
+function renderMinimap(lobby) {
+  const canvas = document.getElementById('minimap');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const MW = 4800, MH = 3000;
+  const scX = W / MW, scY = H / MH;
+
+  cancelAnimationFrame(minimapAnim);
+  function frame() {
+    const l = state[selectedCode];
+    if (!l) return;
+    ctx.fillStyle = '#0a0e1a'; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='rgba(255,255,255,0.03)';ctx.lineWidth=0.3;
+    for(let x=0;x<W;x+=W/20){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=H/12){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    (l.obstacles||[]).forEach(o=>{
+      ctx.fillStyle=OBS_COLORS[o.style]||'#333';
+      ctx.fillRect(o.x*scX,o.y*scY,Math.max(1,o.w*scX),Math.max(1,o.h*scY));
+    });
+    l.players.forEach(p=>{
+      const x=p.position.x*scX, y=p.position.y*scY;
+      ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);
+      ctx.fillStyle=hexFor(p.color);ctx.fill();
+      if(p.it){ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.strokeStyle=hexFor(p.color)+'88';ctx.lineWidth=1.5;ctx.stroke();}
+    });
+    minimapAnim=requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+// ── Watch mode ────────────────────────────────────────────────────────────────
+document.getElementById('watchBtn').onclick = () => {
+  if (!selectedCode || !state[selectedCode]) return;
+  watchCode = selectedCode;
+  const l = state[selectedCode];
+  document.getElementById('watchTitle').textContent = 'Watching ' + l.code;
+  document.getElementById('watchSub').textContent   = MAP_NAMES[l.map] || l.map;
+  document.getElementById('watch-overlay').classList.add('open');
+  startWatchCanvas();
+};
+document.getElementById('watchBack').onclick = () => {
+  document.getElementById('watch-overlay').classList.remove('open');
+  cancelAnimationFrame(watchAnim); watchCode = null;
+};
+
+function startWatchCanvas() {
+  const canvas = document.getElementById('watch-canvas');
+  const wrap   = document.getElementById('watch-canvas-wrap');
+  canvas.width  = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  const ctx = canvas.getContext('2d');
+  const MW=4800,MH=3000;
+  let camX=0,camY=0;
+
+  function frame() {
+    const l = state[watchCode]; if (!l) { watchAnim=requestAnimationFrame(frame); return; }
+    const W=canvas.width,H=canvas.height;
+    const sc=Math.min(W/MW,H/MH)*1.5;
+
+    // Follow IT player
+    const it=l.players.find(p=>p.it);
+    if(it){camX=it.position.x*sc-W/2;camY=it.position.y*sc-H/2;}
+    camX=Math.max(0,Math.min(camX,MW*sc-W));
+    camY=Math.max(0,Math.min(camY,MH*sc-H));
+
+    ctx.fillStyle='#0a0e1a';ctx.fillRect(0,0,W,H);
+    ctx.save();ctx.translate(-camX,-camY);
+
+    ctx.strokeStyle='rgba(255,255,255,0.03)';ctx.lineWidth=0.5;
+    for(let x=0;x<MW*sc;x+=80){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,MH*sc);ctx.stroke();}
+    for(let y=0;y<MH*sc;y+=80){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(MW*sc,y);ctx.stroke();}
+
+    (l.obstacles||[]).forEach(o=>{
+      ctx.fillStyle=OBS_COLORS[o.style]||'#333';
+      ctx.strokeStyle=OBS_COLORS[o.style]||'#555';ctx.lineWidth=1;
+      ctx.fillRect(o.x*sc,o.y*sc,o.w*sc,o.h*sc);
+      ctx.strokeRect(o.x*sc,o.y*sc,o.w*sc,o.h*sc);
+    });
+
+    l.players.forEach(p=>{
+      const px=p.position.x*sc,py=p.position.y*sc;
+      ctx.beginPath();ctx.arc(px,py,10,0,Math.PI*2);
+      ctx.fillStyle=hexFor(p.color);ctx.fill();
+      if(p.it){ctx.beginPath();ctx.arc(px,py,15,0,Math.PI*2);ctx.strokeStyle=hexFor(p.color)+'66';ctx.lineWidth=2;ctx.stroke();}
+      ctx.fillStyle='#fff';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(initials(p.name),px,py);ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    });
+
+    ctx.restore();
+    document.getElementById('watchTimer').textContent = l.gameActive ? l.timer+'s left' : 'Game over';
+    watchAnim=requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+// Refresh machine data every 5s
+setInterval(()=>{ if(socket) socket.emit('admin:requestMachineData',adminKey); },5000);
+// Update tagged time display every second
+setInterval(()=>{ if(selectedCode&&state[selectedCode]) renderPlayerGrid(state[selectedCode]); },1000);
+</script>
+</body>
+</html>
