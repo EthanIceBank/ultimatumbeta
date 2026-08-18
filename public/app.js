@@ -81,6 +81,16 @@ let effectBannerTimeout = null;
 // ─── Single-player state ──────────────────────────────────────────────────────
 let spActive = false;
 let spMapId  = 'arena1';
+
+// ─── Map data — always fetched fresh, never cached ────────────────────────────
+let MAP_DATA = null;
+
+async function ensureMapData() {
+  // Always fetch fresh so map edits in server.js are picked up immediately
+  const res = await fetch('/api/maps?t=' + Date.now());
+  MAP_DATA  = await res.json();
+  return MAP_DATA;
+}
 let spInterval = null;
 let spTimer  = 60;
 let spCountdownInterval = null;
@@ -95,8 +105,8 @@ const SP_SPEED      = 6;
 const SP_BOT_SPEED  = 4.5;  // slightly slower than player so it's fair
 const SP_TAG_DIST   = 64;
 const SP_PLAYER_SIZE= 48;
-const SP_W          = 1600;
-const SP_H          = 1000;
+const SP_W          = 4800;
+const SP_H          = 3000;
 const SP_TICK       = 50;
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
@@ -233,100 +243,18 @@ function buildSpMapSelect(){
   });
 }
 
-// ─── Single player obstacles (reuse server map layouts, mirrored here) ────────
-// We keep a client-side copy of obstacles for collision in SP mode
-const SP_OBSTACLES = {};
-
-// Paste identical obstacle arrays from server for each map
-SP_OBSTACLES.arena1=[
-  {x:0,y:0,w:1600,h:12,style:'wall'},{x:0,y:988,w:1600,h:12,style:'wall'},{x:0,y:0,w:12,h:1000,style:'wall'},{x:1588,y:0,w:12,h:1000,style:'wall'},
-  {x:200,y:12,w:12,h:280,style:'wall'},{x:200,y:380,w:12,h:260,style:'wall'},{x:200,y:730,w:12,h:258,style:'wall'},
-  {x:400,y:150,w:12,h:280,style:'wall'},{x:400,y:520,w:12,h:320,style:'wall'},
-  {x:600,y:12,w:12,h:220,style:'wall'},{x:600,y:320,w:12,h:280,style:'wall'},{x:600,y:700,w:12,h:288,style:'wall'},
-  {x:800,y:120,w:12,h:300,style:'wall'},{x:800,y:520,w:12,h:280,style:'wall'},
-  {x:1000,y:12,w:12,h:260,style:'wall'},{x:1000,y:380,w:12,h:260,style:'wall'},{x:1000,y:740,w:12,h:248,style:'wall'},
-  {x:1200,y:150,w:12,h:280,style:'wall'},{x:1200,y:530,w:12,h:300,style:'wall'},
-  {x:1400,y:12,w:12,h:240,style:'wall'},{x:1400,y:360,w:12,h:260,style:'wall'},{x:1400,y:720,w:12,h:268,style:'wall'},
-  {x:12,y:320,w:188,h:12,style:'wall'},{x:12,y:650,w:120,h:12,style:'wall'},{x:212,y:480,w:188,h:12,style:'wall'},
-  {x:412,y:320,w:188,h:12,style:'wall'},{x:412,y:720,w:188,h:12,style:'wall'},{x:612,y:480,w:188,h:12,style:'wall'},
-  {x:812,y:320,w:188,h:12,style:'wall'},{x:812,y:720,w:188,h:12,style:'wall'},{x:1012,y:480,w:188,h:12,style:'wall'},
-  {x:1212,y:320,w:188,h:12,style:'wall'},{x:1212,y:720,w:188,h:12,style:'wall'},{x:1412,y:480,w:176,h:12,style:'wall'},
-];
-SP_OBSTACLES.arena2=[
-  {x:0,y:0,w:1600,h:12,style:'pillar'},{x:0,y:988,w:1600,h:12,style:'pillar'},{x:0,y:0,w:12,h:1000,style:'pillar'},{x:1588,y:0,w:12,h:1000,style:'pillar'},
-  {x:80,y:80,w:120,h:120,style:'pillar'},{x:320,y:70,w:80,h:200,style:'pillar'},{x:560,y:80,w:200,h:80,style:'pillar'},
-  {x:880,y:70,w:80,h:180,style:'pillar'},{x:1080,y:80,w:180,h:80,style:'pillar'},{x:1360,y:70,w:80,h:160,style:'pillar'},{x:1460,y:80,w:120,h:120,style:'pillar'},
-  {x:80,y:340,w:80,h:160,style:'pillar'},{x:260,y:360,w:160,h:80,style:'pillar'},{x:560,y:330,w:80,h:200,style:'pillar'},
-  {x:760,y:360,w:200,h:80,style:'pillar'},{x:1080,y:330,w:80,h:200,style:'pillar'},{x:1260,y:360,w:200,h:80,style:'pillar'},{x:1500,y:340,w:88,h:160,style:'pillar'},
-  {x:80,y:640,w:160,h:80,style:'pillar'},{x:340,y:630,w:80,h:200,style:'pillar'},{x:560,y:640,w:200,h:80,style:'pillar'},
-  {x:880,y:630,w:80,h:200,style:'pillar'},{x:1080,y:640,w:200,h:80,style:'pillar'},{x:1360,y:630,w:80,h:200,style:'pillar'},{x:1460,y:640,w:128,h:80,style:'pillar'},
-  {x:80,y:820,w:120,h:120,style:'pillar'},{x:560,y:820,w:200,h:80,style:'pillar'},{x:1460,y:820,w:128,h:120,style:'pillar'},
-  {x:200,y:230,w:100,h:12,style:'pillar'},{x:700,y:230,w:140,h:12,style:'pillar'},{x:950,y:480,w:100,h:12,style:'pillar'},{x:1300,y:530,w:120,h:12,style:'pillar'},
-];
-SP_OBSTACLES.arena3=[
-  {x:0,y:0,w:1600,h:12,style:'ice'},{x:0,y:988,w:1600,h:12,style:'ice'},{x:0,y:0,w:12,h:1000,style:'ice'},{x:1588,y:0,w:12,h:1000,style:'ice'},
-  {x:12,y:200,w:380,h:12,style:'ice'},{x:600,y:200,w:360,h:12,style:'ice'},{x:1160,y:200,w:428,h:12,style:'ice'},
-  {x:12,y:420,w:260,h:12,style:'ice'},{x:420,y:420,w:360,h:12,style:'ice'},{x:940,y:420,w:360,h:12,style:'ice'},{x:1420,y:420,w:168,h:12,style:'ice'},
-  {x:12,y:640,w:380,h:12,style:'ice'},{x:600,y:640,w:360,h:12,style:'ice'},{x:1160,y:640,w:428,h:12,style:'ice'},
-  {x:12,y:820,w:260,h:12,style:'ice'},{x:420,y:820,w:360,h:12,style:'ice'},{x:940,y:820,w:360,h:12,style:'ice'},
-  {x:380,y:212,w:12,h:140,style:'ice'},{x:960,y:212,w:12,h:140,style:'ice'},{x:260,y:432,w:12,h:140,style:'ice'},
-  {x:780,y:432,w:12,h:140,style:'ice'},{x:1300,y:432,w:12,h:140,style:'ice'},{x:380,y:652,w:12,h:140,style:'ice'},{x:960,y:652,w:12,h:140,style:'ice'},
-];
-SP_OBSTACLES.arena4=[
-  {x:0,y:0,w:1600,h:12,style:'rock'},{x:0,y:988,w:1600,h:12,style:'rock'},{x:0,y:0,w:12,h:1000,style:'rock'},{x:1588,y:0,w:12,h:1000,style:'rock'},
-  {x:100,y:100,w:100,h:100,style:'rock'},{x:340,y:90,w:80,h:160,style:'rock'},{x:560,y:100,w:160,h:80,style:'rock'},
-  {x:860,y:90,w:80,h:140,style:'rock'},{x:1080,y:100,w:160,h:80,style:'rock'},{x:1360,y:90,w:80,h:140,style:'rock'},{x:1460,y:100,w:100,h:100,style:'rock'},
-  {x:100,y:380,w:80,h:160,style:'rock'},{x:300,y:400,w:160,h:80,style:'rock'},{x:600,y:370,w:80,h:180,style:'rock'},
-  {x:840,y:400,w:200,h:80,style:'rock'},{x:1120,y:370,w:80,h:180,style:'rock'},{x:1340,y:400,w:200,h:80,style:'rock'},
-  {x:100,y:660,w:160,h:80,style:'rock'},{x:340,y:640,w:80,h:180,style:'rock'},{x:560,y:660,w:200,h:80,style:'rock'},
-  {x:860,y:640,w:80,h:180,style:'rock'},{x:1080,y:660,w:200,h:80,style:'rock'},{x:1360,y:640,w:80,h:180,style:'rock'},
-  {x:100,y:860,w:100,h:100,style:'rock'},{x:1460,y:860,w:100,h:100,style:'rock'},
-  {x:220,y:260,w:100,h:12,style:'rock'},{x:700,y:560,w:100,h:12,style:'rock'},{x:220,y:560,w:100,h:12,style:'rock'},
-];
-SP_OBSTACLES.arena5=[
-  {x:0,y:0,w:1600,h:12,style:'void'},{x:0,y:988,w:1600,h:12,style:'void'},{x:0,y:0,w:12,h:1000,style:'void'},{x:1588,y:0,w:12,h:1000,style:'void'},
-  {x:120,y:120,w:12,h:260,style:'void'},{x:1468,y:120,w:12,h:260,style:'void'},{x:120,y:620,w:12,h:260,style:'void'},{x:1468,y:620,w:12,h:260,style:'void'},
-  {x:120,y:120,w:260,h:12,style:'void'},{x:1220,y:120,w:368,h:12,style:'void'},{x:120,y:868,w:260,h:12,style:'void'},{x:1220,y:868,w:368,h:12,style:'void'},
-  {x:300,y:300,w:12,h:200,style:'void'},{x:1288,y:300,w:12,h:200,style:'void'},{x:300,y:500,w:12,h:200,style:'void'},{x:1288,y:500,w:12,h:200,style:'void'},
-  {x:300,y:300,w:200,h:12,style:'void'},{x:1100,y:300,w:200,h:12,style:'void'},{x:300,y:688,w:200,h:12,style:'void'},{x:1100,y:688,w:200,h:12,style:'void'},
-  {x:500,y:440,w:12,h:320,style:'void'},{x:1088,y:440,w:12,h:320,style:'void'},
-  {x:500,y:440,w:300,h:12,style:'void'},{x:800,y:440,w:300,h:12,style:'void'},{x:500,y:748,w:300,h:12,style:'void'},{x:800,y:748,w:300,h:12,style:'void'},
-  {x:770,y:554,w:60,h:12,style:'void'},{x:794,y:490,w:12,h:120,style:'void'},
-];
-SP_OBSTACLES.arena6=[
-  {x:0,y:0,w:1600,h:12,style:'tree'},{x:0,y:988,w:1600,h:12,style:'tree'},{x:0,y:0,w:12,h:1000,style:'tree'},{x:1588,y:0,w:12,h:1000,style:'tree'},
-  {x:100,y:100,w:120,h:120,style:'tree'},{x:360,y:90,w:80,h:160,style:'tree'},{x:600,y:100,w:160,h:80,style:'tree'},
-  {x:920,y:90,w:80,h:140,style:'tree'},{x:1140,y:100,w:160,h:80,style:'tree'},{x:1400,y:90,w:80,h:140,style:'tree'},
-  {x:80,y:360,w:80,h:160,style:'tree'},{x:280,y:380,w:160,h:80,style:'tree'},{x:560,y:350,w:80,h:180,style:'tree'},
-  {x:800,y:380,w:200,h:80,style:'tree'},{x:1100,y:350,w:80,h:180,style:'tree'},{x:1340,y:380,w:200,h:80,style:'tree'},
-  {x:80,y:640,w:160,h:80,style:'tree'},{x:360,y:620,w:80,h:180,style:'tree'},{x:600,y:640,w:200,h:80,style:'tree'},
-  {x:920,y:620,w:80,h:180,style:'tree'},{x:1140,y:640,w:200,h:80,style:'tree'},{x:1400,y:620,w:80,h:180,style:'tree'},
-  {x:100,y:860,w:120,h:100,style:'tree'},{x:600,y:860,w:200,h:80,style:'tree'},{x:1440,y:860,w:148,h:100,style:'tree'},
-  {x:220,y:240,w:80,h:12,style:'tree'},{x:720,y:240,w:120,h:12,style:'tree'},{x:440,y:540,w:80,h:12,style:'tree'},{x:1220,y:530,w:80,h:12,style:'tree'},
-];
-
-const SP_SPAWNS = {
-  arena1:[{x:80,y:80},{x:1470,y:870}],
-  arena2:[{x:80,y:500},{x:1470,y:500}],
-  arena3:[{x:100,y:100},{x:1460,y:880}],
-  arena4:[{x:240,y:240},{x:1320,y:820}],
-  arena5:[{x:200,y:200},{x:1360,y:760}],
-  arena6:[{x:240,y:240},{x:1320,y:800}],
-};
-
-function spCollides(px,py,obs,size=SP_PLAYER_SIZE){
-  for(const o of obs){if(px<o.x+o.w&&px+size>o.x&&py<o.y+o.h&&py+size>o.y)return true;}
-  return false;
-}
-function spClamp(v,lo,hi){return Math.min(Math.max(v,lo),hi);}
-
 // ─── Start single player ──────────────────────────────────────────────────────
-function startSinglePlayer(mapId){
+async function startSinglePlayer(mapId){
   spMapId=mapId; spActive=true;
   myPlayer.name=document.getElementById('playerNameInput').value.trim()||'Player';
   if(!myPlayer.color)myPlayer.color='cyan';
 
-  const spawns=SP_SPAWNS[mapId]||[{x:100,y:100},{x:1400,y:800}];
+  const maps = await ensureMapData();
+  const mapLayout = maps[mapId] || {};
+  const obstacles = mapLayout.obstacles || [];
+  const spawns    = mapLayout.spawns    || [{x:200,y:200},{x:4400,y:2600}];
+  const mapW      = mapLayout.mapW      || 4800;
+  const mapH      = mapLayout.mapH      || 3000;
   spPlayerPos={...spawns[0]};
   spBotPos   ={...spawns[1]};
   spPlayerIt =Math.random()<0.5;
@@ -334,15 +262,17 @@ function startSinglePlayer(mapId){
 
   Audio.stopMenu(); Audio.playSp();
   switchScreen('gameScreen');
+  const spMenuBtnEl=document.getElementById('spMenuBtn');
+  if(spMenuBtnEl)spMenuBtnEl.style.display='flex';
 
   // Build canvas
   const gcWrap=document.getElementById('gameCanvas');
   gcWrap.innerHTML=''; gcWrap.style.overflow='hidden'; gcWrap.style.position='relative';
   const gc=document.createElement('div'); gc.id='gameWorld';
-  gc.style.cssText=`position:absolute;width:${SP_W}px;height:${SP_H}px;`;
+  gc.style.cssText=`position:absolute;width:${mapW}px;height:${mapH}px;`;
   gcWrap.appendChild(gc);
   const mapCfg=getMapConfig(mapId); gc.style.background=mapCfg.bg;
-  gc._mapW=SP_W; gc._mapH=SP_H;
+  gc._mapW=mapW; gc._mapH=mapH;
 
   if(!document.getElementById('gameStyles')){
     const s=document.createElement('style');s.id='gameStyles';
@@ -360,8 +290,7 @@ function startSinglePlayer(mapId){
   gc.appendChild(grid);
 
   // Obstacles
-  const obs=SP_OBSTACLES[mapId]||[];
-  obs.forEach(o=>{
+  obstacles.forEach(o=>{
     const th=OBS_THEME[o.style]||OBS_THEME.wall;
     const el=document.createElement('div');
     el.style.cssText=`position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;
@@ -418,7 +347,7 @@ function startSinglePlayer(mapId){
 
 function spTick(){
   if(!spActive)return;
-  const obs=SP_OBSTACLES[spMapId]||[];
+  const obs=(MAP_DATA&&MAP_DATA[spMapId]&&MAP_DATA[spMapId].obstacles)||[];
   const now=Date.now();
 
   // ── Move player ─────────────────────────────────────────────────────────────
@@ -427,23 +356,82 @@ function spTick(){
   if(keyState.down)  py+=SP_SPEED;
   if(keyState.left)  px-=SP_SPEED;
   if(keyState.right) px+=SP_SPEED;
-  px=spClamp(px,0,SP_W-SP_PLAYER_SIZE); py=spClamp(py,0,SP_H-SP_PLAYER_SIZE);
+  const _pw=(MAP_DATA&&MAP_DATA[spMapId]?.mapW)||SP_W;
+  const _ph=(MAP_DATA&&MAP_DATA[spMapId]?.mapH)||SP_H;
+  px=spClamp(px,0,_pw-SP_PLAYER_SIZE); py=spClamp(py,0,_ph-SP_PLAYER_SIZE);
   if(!spCollides(px,spPlayerPos.y,obs))spPlayerPos.x=px;
   if(!spCollides(spPlayerPos.x,py,obs))spPlayerPos.y=py;
 
-  // ── Move bot (simple chase AI) ───────────────────────────────────────────────
-  const targetX = spPlayerIt ? spPlayerPos.x : spPlayerPos.x; // bot always targets player
-  const dx=spPlayerPos.x-spBotPos.x, dy=spPlayerPos.y-spBotPos.y;
-  const d=Math.hypot(dx,dy)||1;
-  // If bot is IT → chase player; if safe → flee
-  const dir = !spPlayerIt ? 1 : -1; // IT bot chases, safe bot flees
-  let bx=spBotPos.x+(dx/d)*SP_BOT_SPEED*(!spPlayerIt?1:-0.9);
-  let by=spBotPos.y+(dy/d)*SP_BOT_SPEED*(!spPlayerIt?1:-0.9);
-  // Add slight random jitter so bot doesn't get stuck in corners
-  bx+=( Math.random()-0.5)*1.5; by+=(Math.random()-0.5)*1.5;
-  bx=spClamp(bx,0,SP_W-SP_PLAYER_SIZE); by=spClamp(by,0,SP_H-SP_PLAYER_SIZE);
-  if(!spCollides(bx,spBotPos.y,obs))spBotPos.x=bx;
-  if(!spCollides(spBotPos.x,by,obs))spBotPos.y=by;
+  // ── Move bot (steering behaviors) ────────────────────────────────────────────
+  {
+    const dx=spPlayerPos.x-spBotPos.x, dy=spPlayerPos.y-spBotPos.y;
+    const d=Math.hypot(dx,dy)||1;
+    // Desired direction: chase when IT, flee when safe
+    const flip = spPlayerIt ? -1 : 1;
+    let desiredX = (dx/d)*flip;
+    let desiredY = (dy/d)*flip;
+
+    // ── Wall avoidance: cast 5 rays ahead of the bot ──────────────────────────
+    const RAY_LEN   = 90;   // how far ahead to look
+    const RAY_HALF  = 45;   // side ray length
+    const RAY_ANGLES = [0, -0.5, 0.5, -1.1, 1.1]; // centre + 4 side rays (radians)
+    const botAngle  = Math.atan2(desiredY, desiredX);
+    let avoidX = 0, avoidY = 0;
+
+    RAY_ANGLES.forEach((offset, i) => {
+      const rayAngle = botAngle + offset;
+      const rayLen   = i === 0 ? RAY_LEN : RAY_HALF;
+      const weight   = i === 0 ? 1.6 : 1.0;
+      const rx = spBotPos.x + 24 + Math.cos(rayAngle)*rayLen;
+      const ry = spBotPos.y + 24 + Math.sin(rayAngle)*rayLen;
+      // Sample several points along this ray
+      for(let t=0.3; t<=1; t+=0.35){
+        const sx = spBotPos.x+24 + Math.cos(rayAngle)*rayLen*t;
+        const sy = spBotPos.y+24 + Math.sin(rayAngle)*rayLen*t;
+        if(spCollides(sx-12, sy-12, obs, 24)){
+          // Push away from the hit point, weighted by proximity
+          const proximity = 1 - t;
+          avoidX -= Math.cos(rayAngle) * weight * proximity * 2.5;
+          avoidY -= Math.sin(rayAngle) * weight * proximity * 2.5;
+          break;
+        }
+      }
+    });
+
+    // ── Unstuck nudge: if bot hasn't moved much in 40 ticks, random push ─────
+    if(!spBotPos._lastX) spBotPos._lastX=spBotPos.x, spBotPos._lastY=spBotPos.y, spBotPos._stuckTimer=0;
+    spBotPos._stuckTimer++;
+    if(spBotPos._stuckTimer >= 40){
+      if(Math.hypot(spBotPos.x-spBotPos._lastX, spBotPos.y-spBotPos._lastY) < 10){
+        spBotPos._nudgeX = (Math.random()-0.5)*3;
+        spBotPos._nudgeY = (Math.random()-0.5)*3;
+        spBotPos._nudgeTicks = 20;
+      }
+      spBotPos._lastX=spBotPos.x; spBotPos._lastY=spBotPos.y; spBotPos._stuckTimer=0;
+    }
+    const nudgeX = spBotPos._nudgeTicks>0 ? spBotPos._nudgeX : 0;
+    const nudgeY = spBotPos._nudgeTicks>0 ? spBotPos._nudgeY : 0;
+    if(spBotPos._nudgeTicks>0) spBotPos._nudgeTicks--;
+
+    // ── Combine: desired direction + avoidance + unstuck nudge ────────────────
+    let steerX = desiredX + avoidX + nudgeX;
+    let steerY = desiredY + avoidY + nudgeY;
+    const steerLen = Math.hypot(steerX,steerY)||1;
+    steerX /= steerLen; steerY /= steerLen;
+
+    // Smooth velocity (lerp toward desired direction so bot curves, not snaps)
+    if(!spBotPos._vx) spBotPos._vx=0, spBotPos._vy=0;
+    spBotPos._vx += (steerX - spBotPos._vx) * 0.18;
+    spBotPos._vy += (steerY - spBotPos._vy) * 0.18;
+
+    let bx = spBotPos.x + spBotPos._vx * SP_BOT_SPEED;
+    let by = spBotPos.y + spBotPos._vy * SP_BOT_SPEED;
+    const _mw=(MAP_DATA&&MAP_DATA[spMapId]?.mapW)||SP_W;
+    const _mh=(MAP_DATA&&MAP_DATA[spMapId]?.mapH)||SP_H;
+    bx=spClamp(bx,0,_mw-SP_PLAYER_SIZE); by=spClamp(by,0,_mh-SP_PLAYER_SIZE);
+    if(!spCollides(bx,spBotPos.y,obs)) spBotPos.x=bx;
+    if(!spCollides(spBotPos.x,by,obs)) spBotPos.y=by;
+  }
 
   // ── Tag logic ────────────────────────────────────────────────────────────────
   const dist=Math.hypot(spPlayerPos.x-spBotPos.x,spPlayerPos.y-spBotPos.y);
@@ -476,8 +464,9 @@ function spTick(){
   const world=document.getElementById('gameWorld');
   if(wrap&&world){
     const vw=wrap.clientWidth,vh=wrap.clientHeight;
+    const cmw=(MAP_DATA&&MAP_DATA[spMapId]?.mapW)||SP_W,cmh=(MAP_DATA&&MAP_DATA[spMapId]?.mapH)||SP_H;
     let cx=spPlayerPos.x+24-vw/2, cy=spPlayerPos.y+24-vh/2;
-    cx=Math.max(0,Math.min(cx,SP_W-vw)); cy=Math.max(0,Math.min(cy,SP_H-vh));
+    cx=Math.max(0,Math.min(cx,cmw-vw)); cy=Math.max(0,Math.min(cy,cmh-vh));
     world.style.transform=`translate(${-cx}px,${-cy}px)`;
   }
 }
@@ -579,6 +568,8 @@ document.getElementById('startGameBtn').onclick=()=>{if(isHost)socket.emit('star
 socket.on('gameStart',({players,map,obstacles,powerups,speedPads,mapW,mapH})=>{
   spActive=false;
   switchScreen('gameScreen'); Audio.stopBg(); Audio.playBg();
+  const _spBtn=document.getElementById('spMenuBtn');
+  if(_spBtn)_spBtn.style.display='none';
   Object.keys(powerupEls).forEach(k=>delete powerupEls[k]);
   const gcWrap=document.getElementById('gameCanvas');
   gcWrap.innerHTML=''; gcWrap.style.overflow='hidden'; gcWrap.style.position='relative';
@@ -735,6 +726,13 @@ setInterval(()=>{if(!currentLobby||spActive)return;for(const d in keyState)if(ke
 document.getElementById('leaveLobbyBtn').onclick=()=>{
   socket.emit('leaveLobby',currentLobby);Audio.stopBg();Audio.playMenu();
   switchScreen('mainMenu');currentLobby='';isHost=false;
+};
+document.getElementById('spMenuBtn').onclick=()=>{
+  clearInterval(spInterval); clearInterval(spCountdownInterval);
+  spActive=false; Audio.stopSp(); Audio.playMenu();
+  const spMenuBtnEl=document.getElementById('spMenuBtn');
+  if(spMenuBtnEl)spMenuBtnEl.style.display='none';
+  switchScreen('mainMenu'); currentLobby=''; isHost=false;
 };
 document.getElementById('playAgainBtn').onclick=()=>{
   clearInterval(spInterval);clearInterval(spCountdownInterval);
