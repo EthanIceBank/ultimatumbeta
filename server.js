@@ -39,49 +39,19 @@ function collidesWithObstacle(px, py, obstacles, size = PLAYER_SIZE) {
 // ─── Maze layouts (4800×3000) ─────────────────────────────────────────────────
 const MAZE_LAYOUTS = {
 
-  arena1:
-    obstacles: [
-      {x:0,    y:0,    w:4800, h:12,   style:'wall'},
-      {x:0,    y:2988, w:4800, h:12,   style:'wall'},
-      {x:0,    y:0,    w:12,   h:3000, style:'wall'},
-      {x:4788, y:0,    w:12,   h:3000, style:'wall'},
-      {x:200,  y:12,   w:12,   h:280,  style:'wall'},
-      {x:200,  y:380,  w:12,   h:260,  style:'wall'},
-      {x:200,  y:730,  w:12,   h:258,  style:'wall'},
-      {x:400,  y:150,  w:12,   h:280,  style:'wall'},
-      {x:400,  y:520,  w:12,   h:320,  style:'wall'},
-      {x:600,  y:12,   w:12,   h:220,  style:'wall'},
-      {x:600,  y:320,  w:12,   h:280,  style:'wall'},
-      {x:600,  y:700,  w:12,   h:288,  style:'wall'},
-      {x:800,  y:120,  w:12,   h:300,  style:'wall'},
-      {x:800,  y:520,  w:12,   h:280,  style:'wall'},
-      {x:1000, y:12,   w:12,   h:260,  style:'wall'},
-      {x:1000, y:380,  w:12,   h:260,  style:'wall'},
-      {x:1000, y:740,  w:12,   h:248,  style:'wall'},
-      {x:1200, y:150,  w:12,   h:280,  style:'wall'},
-      {x:1200, y:530,  w:12,   h:300,  style:'wall'},
-      {x:1400, y:12,   w:12,   h:240,  style:'wall'},
-      {x:1400, y:360,  w:12,   h:260,  style:'wall'},
-      {x:1400, y:720,  w:12,   h:268,  style:'wall'},
-      {x:12,   y:320,  w:188,  h:12,   style:'wall'},
-      {x:12,   y:650,  w:120,  h:12,   style:'wall'},
-      {x:212,  y:480,  w:188,  h:12,   style:'wall'},
-      {x:412,  y:320,  w:188,  h:12,   style:'wall'},
-      {x:412,  y:720,  w:188,  h:12,   style:'wall'},
-      {x:612,  y:480,  w:188,  h:12,   style:'wall'},
-      {x:812,  y:320,  w:188,  h:12,   style:'wall'},
-      {x:812,  y:720,  w:188,  h:12,   style:'wall'},
-      {x:1012, y:480,  w:188,  h:12,   style:'wall'},
-      {x:1212, y:320,  w:188,  h:12,   style:'wall'},
-      {x:1212, y:720,  w:188,  h:12,   style:'wall'},
-      {x:1412, y:480,  w:176,  h:12,   style:'wall'},
-    ],
+  arena1: {
+    obstacles: [],
     speedPads: [
       {x:300, y:80,   dir:'right'},
       {x:900, y:2800, dir:'left'},
       {x:4600,y:80,   dir:'down'},
     ],
-    spawns: [{x:1040,y:720}, {x:1200,y:2080}, {x:3920,y:720}, {x:4040,y:2040}],
+    spawns: [
+      {x:640,  y:480},
+      {x:4200, y:560},
+      {x:4240, y:2440},
+      {x:800,  y:2320},
+    ],
   },
 
   arena2: {
