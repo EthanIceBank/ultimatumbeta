@@ -244,10 +244,28 @@ function buildSpMapSelect(){
 }
 
 // ─── Start single player ──────────────────────────────────────────────────────
+let spKeyState = {up:false,down:false,left:false,right:false};
+let _spKeyDown = null;
+let _spKeyUp   = null;
+
 async function startSinglePlayer(mapId){
   spMapId=mapId; spActive=true;
   myPlayer.name=document.getElementById('playerNameInput').value.trim()||'Player';
   if(!myPlayer.color)myPlayer.color='cyan';
+  spKeyState={up:false,down:false,left:false,right:false};
+
+  // Remove any old SP key listeners then add fresh ones
+  if(_spKeyDown) document.removeEventListener('keydown',_spKeyDown);
+  if(_spKeyUp)   document.removeEventListener('keyup',_spKeyUp);
+  _spKeyDown = e=>{
+    if(isTyping(e))return;
+    for(const d in keysMap)if(keysMap[d].includes(e.key)){e.preventDefault();spKeyState[d]=true;}
+  };
+  _spKeyUp = e=>{
+    for(const d in keysMap)if(keysMap[d].includes(e.key))spKeyState[d]=false;
+  };
+  document.addEventListener('keydown',_spKeyDown);
+  document.addEventListener('keyup',_spKeyUp);
 
   const maps = await ensureMapData();
   const mapLayout = maps[mapId] || {};
@@ -367,10 +385,10 @@ function spTick(){
 
   // ── Move player ─────────────────────────────────────────────────────────────
   let px=spPlayerPos.x, py=spPlayerPos.y;
-  if(keyState.up)    py-=SP_SPEED;
-  if(keyState.down)  py+=SP_SPEED;
-  if(keyState.left)  px-=SP_SPEED;
-  if(keyState.right) px+=SP_SPEED;
+  if(spKeyState.up)    py-=SP_SPEED;
+  if(spKeyState.down)  py+=SP_SPEED;
+  if(spKeyState.left)  px-=SP_SPEED;
+  if(spKeyState.right) px+=SP_SPEED;
   const spMapW=(MAP_DATA&&MAP_DATA[spMapId]?.mapW)||SP_W;
   const spMapH=(MAP_DATA&&MAP_DATA[spMapId]?.mapH)||SP_H;
   px=spClamp(px,0,spMapW-SP_PLAYER_SIZE); py=spClamp(py,0,spMapH-SP_PLAYER_SIZE);
@@ -726,11 +744,11 @@ document.addEventListener('keydown',e=>{if(isTyping(e))return;for(const d in key
 document.addEventListener('keyup',  e=>{if(isTyping(e))return;for(const d in keysMap)if(keysMap[d].includes(e.key))keyState[d]=false;});
 ['up','down','left','right'].forEach(dir=>{
   const btn=document.getElementById(`${dir}Btn`);
-  btn.addEventListener('touchstart',e=>{e.preventDefault();keyState[dir]=true;});
-  btn.addEventListener('touchend',  e=>{e.preventDefault();keyState[dir]=false;});
-  btn.addEventListener('mousedown', ()=>keyState[dir]=true);
-  btn.addEventListener('mouseup',   ()=>keyState[dir]=false);
-  btn.addEventListener('mouseleave',()=>keyState[dir]=false);
+  btn.addEventListener('touchstart',e=>{e.preventDefault();if(spActive)spKeyState[dir]=true;else keyState[dir]=true;});
+  btn.addEventListener('touchend',  e=>{e.preventDefault();spKeyState[dir]=false;keyState[dir]=false;});
+  btn.addEventListener('mousedown', ()=>{if(spActive)spKeyState[dir]=true;else keyState[dir]=true;});
+  btn.addEventListener('mouseup',   ()=>{spKeyState[dir]=false;keyState[dir]=false;});
+  btn.addEventListener('mouseleave',()=>{spKeyState[dir]=false;keyState[dir]=false;});
 });
 setInterval(()=>{if(!currentLobby||spActive)return;for(const d in keyState)if(keyState[d])socket.emit('move',currentLobby,d);},50);
 
@@ -741,14 +759,22 @@ document.getElementById('leaveLobbyBtn').onclick=()=>{
 };
 document.getElementById('spMenuBtn').onclick=()=>{
   clearInterval(spInterval); clearInterval(spCountdownInterval);
-  spActive=false; Audio.stopSp(); Audio.playMenu();
+  spActive=false;
+  if(_spKeyDown) document.removeEventListener('keydown',_spKeyDown);
+  if(_spKeyUp)   document.removeEventListener('keyup',_spKeyUp);
+  spKeyState={up:false,down:false,left:false,right:false};
+  Audio.stopSp(); Audio.playMenu();
   const spMenuBtnEl=document.getElementById('spMenuBtn');
   if(spMenuBtnEl)spMenuBtnEl.style.display='none';
   switchScreen('mainMenu'); currentLobby=''; isHost=false;
 };
 document.getElementById('playAgainBtn').onclick=()=>{
   clearInterval(spInterval);clearInterval(spCountdownInterval);
-  spActive=false;Audio.stopSp();Audio.playMenu();
+  spActive=false;
+  if(_spKeyDown) document.removeEventListener('keydown',_spKeyDown);
+  if(_spKeyUp)   document.removeEventListener('keyup',_spKeyUp);
+  spKeyState={up:false,down:false,left:false,right:false};
+  Audio.stopSp();Audio.playMenu();
   switchScreen('mainMenu');currentLobby='';isHost=false;
 };
 function switchScreen(id){
