@@ -255,8 +255,10 @@ async function startSinglePlayer(mapId){
   const spawns    = mapLayout.spawns    || [{x:200,y:200},{x:4400,y:2600}];
   const mapW      = mapLayout.mapW      || 4800;
   const mapH      = mapLayout.mapH      || 3000;
-  spPlayerPos={...spawns[0]};
-  spBotPos   ={...spawns[1]};
+  spPlayerPos={x:spawns[0].x, y:spawns[0].y};
+  spBotPos   ={x:spawns[1].x, y:spawns[1].y,
+    _vx:0,_vy:0,_lastX:spawns[1].x,_lastY:spawns[1].y,
+    _stuckTimer:0,_nudgeX:0,_nudgeY:0,_nudgeTicks:0};
   spPlayerIt =Math.random()<0.5;
   spTaggedTime=0; spBotTaggedTime=0; spTimer=60; spHeadStart=0;
 
@@ -329,6 +331,19 @@ async function startSinglePlayer(mapId){
   st.innerText=spPlayerIt?'IT':'SAFE'; st.style.color=spPlayerIt?'#ff4444':'#00ff88';
   document.getElementById('roundTimer').innerText='60s';
 
+  // Snap camera to player spawn immediately before first tick
+  (function snapCamera(){
+    const wrap=document.getElementById('gameCanvas');
+    const world=document.getElementById('gameWorld');
+    if(wrap&&world){
+      const vw=wrap.clientWidth,vh=wrap.clientHeight;
+      let cx=spPlayerPos.x+24-vw/2, cy=spPlayerPos.y+24-vh/2;
+      cx=Math.max(0,Math.min(cx,mapW-vw));
+      cy=Math.max(0,Math.min(cy,mapH-vh));
+      world.style.transform=`translate(${-cx}px,${-cy}px)`;
+    }
+  })();
+
   // Start loop
   clearInterval(spInterval); clearInterval(spCountdownInterval);
   spInterval=setInterval(spTick,SP_TICK);
@@ -356,9 +371,9 @@ function spTick(){
   if(keyState.down)  py+=SP_SPEED;
   if(keyState.left)  px-=SP_SPEED;
   if(keyState.right) px+=SP_SPEED;
-  const _pw=(MAP_DATA&&MAP_DATA[spMapId]?.mapW)||SP_W;
-  const _ph=(MAP_DATA&&MAP_DATA[spMapId]?.mapH)||SP_H;
-  px=spClamp(px,0,_pw-SP_PLAYER_SIZE); py=spClamp(py,0,_ph-SP_PLAYER_SIZE);
+  const spMapW=(MAP_DATA&&MAP_DATA[spMapId]?.mapW)||SP_W;
+  const spMapH=(MAP_DATA&&MAP_DATA[spMapId]?.mapH)||SP_H;
+  px=spClamp(px,0,spMapW-SP_PLAYER_SIZE); py=spClamp(py,0,spMapH-SP_PLAYER_SIZE);
   if(!spCollides(px,spPlayerPos.y,obs))spPlayerPos.x=px;
   if(!spCollides(spPlayerPos.x,py,obs))spPlayerPos.y=py;
 
@@ -426,9 +441,7 @@ function spTick(){
 
     let bx = spBotPos.x + spBotPos._vx * SP_BOT_SPEED;
     let by = spBotPos.y + spBotPos._vy * SP_BOT_SPEED;
-    const _mw=(MAP_DATA&&MAP_DATA[spMapId]?.mapW)||SP_W;
-    const _mh=(MAP_DATA&&MAP_DATA[spMapId]?.mapH)||SP_H;
-    bx=spClamp(bx,0,_mw-SP_PLAYER_SIZE); by=spClamp(by,0,_mh-SP_PLAYER_SIZE);
+    bx=spClamp(bx,0,spMapW-SP_PLAYER_SIZE); by=spClamp(by,0,spMapH-SP_PLAYER_SIZE);
     if(!spCollides(bx,spBotPos.y,obs)) spBotPos.x=bx;
     if(!spCollides(spBotPos.x,by,obs)) spBotPos.y=by;
   }
@@ -464,9 +477,8 @@ function spTick(){
   const world=document.getElementById('gameWorld');
   if(wrap&&world){
     const vw=wrap.clientWidth,vh=wrap.clientHeight;
-    const cmw=(MAP_DATA&&MAP_DATA[spMapId]?.mapW)||SP_W,cmh=(MAP_DATA&&MAP_DATA[spMapId]?.mapH)||SP_H;
     let cx=spPlayerPos.x+24-vw/2, cy=spPlayerPos.y+24-vh/2;
-    cx=Math.max(0,Math.min(cx,cmw-vw)); cy=Math.max(0,Math.min(cy,cmh-vh));
+    cx=Math.max(0,Math.min(cx,spMapW-vw)); cy=Math.max(0,Math.min(cy,spMapH-vh));
     world.style.transform=`translate(${-cx}px,${-cy}px)`;
   }
 }
