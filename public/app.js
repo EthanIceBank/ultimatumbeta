@@ -1,5 +1,17 @@
 const socket = io();
 
+// ─── Key mappings — must be defined before any listeners reference them ────────
+const keysMap = {
+  up:    ['ArrowUp','w','W'],
+  down:  ['ArrowDown','s','S'],
+  left:  ['ArrowLeft','a','A'],
+  right: ['ArrowRight','d','D'],
+};
+function isTyping(e){
+  const t=e.target.tagName;
+  return t==='INPUT'||t==='TEXTAREA'||e.target.isContentEditable;
+}
+
 // ─── Audio ────────────────────────────────────────────────────────────────────
 const Audio = {
   _unlocked:false,
@@ -738,8 +750,7 @@ socket.on('gameEnd',players=>{
 });
 
 // ─── Movement ─────────────────────────────────────────────────────────────────
-const keysMap={up:['ArrowUp','w','W'],down:['ArrowDown','s','S'],left:['ArrowLeft','a','A'],right:['ArrowRight','d','D']};
-function isTyping(e){const t=e.target.tagName;return t==='INPUT'||t==='TEXTAREA'||e.target.isContentEditable;}
+// keysMap and isTyping defined at top of file
 document.addEventListener('keydown',e=>{if(isTyping(e))return;for(const d in keysMap)if(keysMap[d].includes(e.key)){e.preventDefault();keyState[d]=true;}});
 document.addEventListener('keyup',  e=>{if(isTyping(e))return;for(const d in keysMap)if(keysMap[d].includes(e.key))keyState[d]=false;});
 ['up','down','left','right'].forEach(dir=>{
