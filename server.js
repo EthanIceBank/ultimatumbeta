@@ -386,6 +386,31 @@ io.on('connection', (socket) => {
     broadcastLobbyPlayers(code);
   }
 
+
+  socket.on('addBot', (code) => {
+    const lobby = lobbies[code];
+    if (!lobby || lobby.host !== socket.id) return;
+    if (lobby.gameActive) return socket.emit('error','Cannot add bot during game.');
+    if (lobby.players.length >= 4) return socket.emit('error','Lobby is full.');
+    const botColors = ['purple','indigo','pink','orange'];
+    const usedColors = lobby.players.map(p=>p.color);
+    const botColor = botColors.find(c=>!usedColors.includes(c)) || 'purple';
+    const botId = 'bot_' + Math.random().toString(36).substring(2,8);
+    lobby.players.push({
+      id: botId,
+      name: 'BOT',
+      color: botColor,
+      isBot: true,
+      position: {x:200,y:200},
+      it: false,
+      taggedTime: 0,
+      keys: {up:false,down:false,left:false,right:false},
+      activeEffect: null,
+      headStartUntil: 0,
+    });
+    broadcastLobbyPlayers(code);
+  });
+
   socket.on('changeMap', (code, map) => {
     const lobby = lobbies[code];
     if (!lobby||lobby.host!==socket.id) return;
@@ -467,6 +492,23 @@ io.on('connection', (socket) => {
         });
 
         io.to(code).emit('positionUpdate', { id:p.id, position:p.position });
+      });
+
+      // ── Bot AI movement ───────────────────────────────────────────────────────
+      players.filter(p=>p.isBot).forEach(bot=>{
+        const itPlayer2=players.find(p=>p.it&&!p.isBot);
+        const humanTarget=players.find(p=>!p.isBot);
+        const target=bot.it?humanTarget:itPlayer2||humanTarget;
+        if(!target)return;
+        const dx=target.position.x-bot.position.x,dy=target.position.y-bot.position.y;
+        const d=Math.hypot(dx,dy)||1;
+        const dir=bot.it?1:-1;
+        let bx=bot.position.x+(dx/d)*SPEED*0.8*dir;
+        let by=bot.position.y+(dy/d)*SPEED*0.8*dir;
+        bx=clamp(bx,0,MAP_W-PLAYER_SIZE);by=clamp(by,0,MAP_H-PLAYER_SIZE);
+        if(!collidesWithObstacle(bx,bot.position.y,lobby.obstacles))bot.position.x=bx;
+        if(!collidesWithObstacle(bot.position.x,by,lobby.obstacles))bot.position.y=by;
+        io.to(code).emit('positionUpdate',{id:bot.id,position:bot.position});
       });
 
       lobby.powerups.forEach(pu => {
