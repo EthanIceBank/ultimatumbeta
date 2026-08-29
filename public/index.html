@@ -78,13 +78,6 @@
                 class="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-4 px-8 rounded-xl text-xl transition-all transform hover:scale-105 mb-3">
           🎮 CREATE LOBBY
         </button>
-
-        <button id="singlePlayerBtn"
-                class="w-full mb-3 font-bold py-4 px-8 rounded-xl text-xl transition-all transform hover:scale-105"
-                style="background:linear-gradient(to right,#0d9488,#0891b2);color:white;">
-          🤖 SINGLE PLAYER
-        </button>
-
         <!-- ✅ ADDED: Join Lobby Block -->
         <div class="bg-white/5 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/10 mt-4">
           <label class="block text-left mb-2 font-semibold text-lg" data-i18n="joinLabel">Join Lobby</label>
@@ -120,29 +113,6 @@
       </div>
     </div>
 
-
-    <!-- Single Player Map Select Screen -->
-    <div id="spMapScreen" class="hidden flex-1 flex items-center justify-center p-6"
-         style="background:linear-gradient(135deg,#042f2e 0%,#0f3460 100%);">
-      <div class="max-w-5xl w-full">
-        <div class="flex items-center gap-4 mb-8">
-          <button id="spBackBtn"
-            class="text-teal-300 hover:text-white font-bold text-lg transition-colors">
-            ← Back
-          </button>
-          <h2 class="title-font text-4xl font-bold neon-glow flex-1 text-center"
-              style="color:#2dd4bf;">
-            🤖 CHOOSE YOUR ARENA
-          </h2>
-        </div>
-        <p class="text-center text-teal-200 mb-8 text-lg">
-          Survive 60 seconds against the bot — stay as safe as possible!
-        </p>
-        <div id="spMapGrid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <!-- Built by JS -->
-        </div>
-      </div>
-    </div>
 
     <!-- Lobby Screen -->
     <div id="lobbyScreen" class="hidden flex-1 flex items-center justify-center p-6">
@@ -234,11 +204,6 @@
             <span data-i18n="moveHint">Use Arrow Keys or WASD to Move</span>
           </div>
           <div style="display:flex;align-items:flex-end;gap:10px;">
-            <!-- SP menu button — shown only in single player mode -->
-            <button id="spMenuBtn"
-              style="display:none;width:52px;height:52px;background:rgba(45,212,191,0.15);border:1px solid rgba(45,212,191,0.4);border-radius:8px;color:#2dd4bf;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;line-height:1.3;font-family:'Rajdhani',sans-serif;">
-              ⌂<br>Menu
-            </button>
             <div class="grid grid-cols-3 gap-2" style="flex:1;">
               <div></div>
               <button id="upBtn" class="bg-white/10 hover:bg-white/20 active:bg-white/30 rounded-lg py-3 font-bold">↑</button>
@@ -276,7 +241,6 @@
      
 
   <!-- Audio -->
-  <audio id="spMusic"     src="/sounds/spmusic.mp3"    loop preload="auto"></audio>
   <audio id="menuMusic"  src="/sounds/menu.mp3"    loop preload="auto"></audio>
   <audio id="bgMusic"    src="/sounds/bgmusic.mp3"   loop preload="auto"></audio>
   <audio id="sfxTag"     src="/sounds/tag.mp3"        preload="auto"></audio>

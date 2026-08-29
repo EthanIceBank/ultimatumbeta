@@ -18,24 +18,51 @@ const Audio = {
   _unlocked:false,
   unlock(){
     if(this._unlocked)return; this._unlocked=true;
-    ['menuMusic','bgMusic','spMusic','sfxTag','sfxCountdown','sfxWin','sfxLose'].forEach(id=>{
+    ['menuMusic','bgMusic','sfxTag','sfxCountdown','sfxWin','sfxLose'].forEach(id=>{
       const el=document.getElementById(id); if(!el)return;
       el.volume=0; el.play().catch(()=>{}).finally(()=>{el.pause();el.currentTime=0;el.volume=1;});
     });
   },
   _vol(base){ return Math.min(1, base * masterVolume); },
-  playBg(){ const el=document.getElementById('bgMusic'); if(!el||!el.paused)return; el.volume=this._vol(0.35);el.currentTime=0;el.play().catch(()=>{}); },
-  stopBg(){ const el=document.getElementById('bgMusic'); if(!el)return; el.pause();el.currentTime=0; },
-  playMenu(){ const el=document.getElementById('menuMusic'); if(!el||!el.paused)return; el.volume=this._vol(0.3);el.currentTime=0;el.play().catch(()=>{}); },
-  stopMenu(){ const el=document.getElementById('menuMusic'); if(!el)return; el.pause();el.currentTime=0; },
-  playSp(){ const el=document.getElementById('spMusic'); if(!el||!el.paused)return; el.volume=this._vol(0.35);el.currentTime=0;el.play().catch(()=>{}); },
-  stopSp(){ const el=document.getElementById('spMusic'); if(!el)return; el.pause();el.currentTime=0; },
+  // Track lists — add more filenames to these arrays to expand the shuffle pool
+  _bgTracks:   ['bgmusic.mp3'],
+  _menuTracks: ['menu.mp3'],
+  _bgIdx: -1, _menuIdx: -1,
+
+  _pickTrack(list, lastIdx){
+    if(list.length===1)return{src:list[0],idx:0};
+    let idx;
+    do{ idx=Math.floor(Math.random()*list.length); }while(idx===lastIdx);
+    return{src:list[idx],idx};
+  },
+
+  playBg(){
+    const el=document.getElementById('bgMusic');if(!el||!el.paused)return;
+    const{src,idx}=this._pickTrack(this._bgTracks,this._bgIdx);
+    this._bgIdx=idx;
+    el.src='/sounds/'+src;
+    el.volume=this._vol(0.35);el.currentTime=0;
+    el.play().catch(()=>{});
+    // Auto-advance to next random track when one ends
+    el.onended=()=>{ if(!el.paused)return; this._bgIdx=idx; this.playBg(); };
+  },
+  stopBg(){ const el=document.getElementById('bgMusic');if(!el)return;el.pause();el.currentTime=0; },
+
+  playMenu(){
+    const el=document.getElementById('menuMusic');if(!el||!el.paused)return;
+    const{src,idx}=this._pickTrack(this._menuTracks,this._menuIdx);
+    this._menuIdx=idx;
+    el.src='/sounds/'+src;
+    el.volume=this._vol(0.3);el.currentTime=0;
+    el.play().catch(()=>{});
+    el.onended=()=>{ this._menuIdx=idx; this.playMenu(); };
+  },
+  stopMenu(){ const el=document.getElementById('menuMusic');if(!el)return;el.pause();el.currentTime=0; },
   fadeBg(dur=2000){ const el=document.getElementById('bgMusic'); if(!el||el.paused)return; const step=el.volume/(dur/50)||0.01; const f=setInterval(()=>{el.volume=Math.max(0,el.volume-step);if(el.volume<=0){el.volume=0;el.pause();el.currentTime=0;clearInterval(f);}},50); },
-  fadeSp(dur=2000){ const el=document.getElementById('spMusic'); if(!el||el.paused)return; const step=el.volume/(dur/50)||0.01; const f=setInterval(()=>{el.volume=Math.max(0,el.volume-step);if(el.volume<=0){el.volume=0;el.pause();el.currentTime=0;clearInterval(f);}},50); },
   play(id,vol=0.7){ const el=document.getElementById(id); if(!el)return; el.volume=this._vol(vol);el.currentTime=0;el.play().catch(()=>{}); },
   setMaster(v){
     masterVolume=v;
-    ['bgMusic','spMusic','menuMusic'].forEach(id=>{
+    ['bgMusic','menuMusic'].forEach(id=>{
       const el=document.getElementById(id); if(!el||el.paused)return;
       el.volume=Math.min(1,parseFloat(el.dataset.baseVol||0.35)*v);
     });
@@ -64,38 +91,6 @@ let keyState={up:false,down:false,left:false,right:false};
 const powerupEls={};
 let headStartInterval=null;
 let effectBannerTimeout=null;
-
-// ─── SP state ─────────────────────────────────────────────────────────────────
-let spActive=false;
-let spMapId='arena1';
-let MAP_DATA=null;
-let spInterval=null;
-let spCountdownInterval=null;
-let spTimer=60;
-let spPlayerPos={x:300,y:300};
-let spBotPos={x:1200,y:700};
-let spPlayerIt=false;
-let spTaggedTime=0;
-let spBotTaggedTime=0;
-let spHeadStart=0;
-let spObstacles=[];  // local copy set at game start — no async in tick
-let spMapW=4800;
-let spMapH=3000;
-
-const SP_SPEED=6;
-const SP_BOT_SPEED=4.5;
-const SP_TAG_DIST=64;
-const SP_PLAYER_SIZE=48;
-const SP_TICK=50;
-
-// SP keys — completely isolated from multiplayer keyState
-const spKeys={up:false,down:false,left:false,right:false};
-
-function spClamp(v,lo,hi){return Math.min(Math.max(v,lo),hi);}
-function spCollides(px,py,obs,size=SP_PLAYER_SIZE){
-  for(const o of obs){if(px<o.x+o.w&&px+size>o.x&&py<o.y+o.h&&py+size>o.y)return true;}
-  return false;
-}
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 const colors=[
@@ -285,293 +280,6 @@ function drawTargetArrows(){
   targetAnimFrame=requestAnimationFrame(drawTargetArrows);
 }
 
-// ─── SP map select ────────────────────────────────────────────────────────────
-function buildSpMapSelect(){
-  const container=document.getElementById('spMapGrid');if(!container)return;
-  container.innerHTML='';
-  maps.forEach(m=>{
-    const div=document.createElement('div');
-    div.style.cssText=`background:${m.bg};border:2px solid rgba(255,255,255,0.15);border-radius:14px;padding:18px;cursor:pointer;text-align:center;transition:border-color .2s,transform .2s;`;
-    div.innerHTML=`<div style="font-size:32px;margin-bottom:8px">${m.icon}</div>
-      <div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#fff;margin-bottom:4px">${m.label}</div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.5)">${m.desc}</div>`;
-    div.onmouseover=()=>{div.style.borderColor='#2dd4bf';div.style.transform='scale(1.04)';};
-    div.onmouseout =()=>{div.style.borderColor='rgba(255,255,255,0.15)';div.style.transform='scale(1)';};
-    div.onclick=()=>startSinglePlayer(m.id);
-    container.appendChild(div);
-  });
-}
-
-// ─── Single Player ────────────────────────────────────────────────────────────
-async function startSinglePlayer(mapId){
-  // Stop any existing SP game cleanly
-  clearInterval(spInterval); clearInterval(spCountdownInterval);
-  spActive=false;
-
-  // Reset all SP state upfront
-  spMapId=mapId;
-  spKeys.up=false;spKeys.down=false;spKeys.left=false;spKeys.right=false;
-  spTaggedTime=0;spBotTaggedTime=0;spTimer=60;spHeadStart=0;
-  myPlayer.name=document.getElementById('playerNameInput').value.trim()||'Player';
-  if(!myPlayer.color)myPlayer.color='cyan';
-
-  // Fetch map data
-  let spawns=[{x:400,y:400},{x:4200,y:2400}];
-  let obstacles=[];
-  let mapW=4800,mapH=3000;
-  try{
-    const res=await fetch('/api/maps?t='+Date.now());
-    const data=await res.json();
-    MAP_DATA=data;
-    const layout=data[mapId]||{};
-    obstacles=layout.obstacles||[];
-    spawns=layout.spawns||spawns;
-    mapW=layout.mapW||4800;
-    mapH=layout.mapH||3000;
-  }catch(e){ console.warn('Could not fetch map data, using defaults',e); }
-
-  // Store for tick function
-  spObstacles=obstacles;
-  spMapW=mapW;
-  spMapH=mapH;
-
-  // Set spawn positions
-  spPlayerPos={x:spawns[0].x, y:spawns[0].y};
-  spBotPos={x:spawns[1]?.x||4200, y:spawns[1]?.y||2400,
-    _vx:0,_vy:0,_lastX:0,_lastY:0,_stuckTimer:0,_nudgeX:0,_nudgeY:0,_nudgeTicks:0};
-
-  spPlayerIt=Math.random()<0.5;
-
-  // Switch screen and build canvas
-  Audio.stopMenu();
-  switchScreen('gameScreen');
-  const spBtnEl=document.getElementById('spMenuBtn');
-  if(spBtnEl)spBtnEl.style.display='flex';
-
-  const gcWrap=document.getElementById('gameCanvas');
-  gcWrap.innerHTML='';
-  gcWrap.style.overflow='hidden';
-  gcWrap.style.position='relative';
-
-  const gc=document.createElement('div');
-  gc.id='gameWorld';
-  gc.style.cssText=`position:absolute;width:${mapW}px;height:${mapH}px;`;
-  gcWrap.appendChild(gc);
-
-  const mapCfg=getMapConfig(mapId);
-  gc.style.background=mapCfg.bg;
-
-  // Grid overlay
-  const grid=document.createElement('div');
-  grid.style.cssText=`position:absolute;inset:0;pointer-events:none;
-    background-image:linear-gradient(${mapCfg.grid} 1px,transparent 1px),
-    linear-gradient(90deg,${mapCfg.grid} 1px,transparent 1px);
-    background-size:40px 40px;`;
-  gc.appendChild(grid);
-
-  // Obstacles
-  obstacles.forEach(o=>{
-    const th=OBS_THEME[o.style]||OBS_THEME.wall;
-    const el=document.createElement('div');
-    el.style.cssText=`position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;
-      background:${th.bg};border:2px solid ${th.border};border-radius:${th.radius};
-      box-shadow:0 0 10px ${th.border}44;pointer-events:none;`;
-    gc.appendChild(el);
-  });
-
-  // Player avatar
-  const playerHex=colors.find(c=>c.name===myPlayer.color)?.bg||'#06b6d4';
-  const pav=document.createElement('div');
-  pav.id='sp-player';
-  pav.style.cssText=`position:absolute;width:${SP_PLAYER_SIZE}px;height:${SP_PLAYER_SIZE}px;
-    border-radius:50%;background:${playerHex};z-index:30;
-    border:3px solid white;box-shadow:0 0 16px ${playerHex};
-    left:${spPlayerPos.x}px;top:${spPlayerPos.y}px;`;
-  gc.appendChild(pav);
-
-  // Bot avatar
-  const bav=document.createElement('div');
-  bav.id='sp-bot';
-  bav.style.cssText=`position:absolute;width:${SP_PLAYER_SIZE}px;height:${SP_PLAYER_SIZE}px;
-    border-radius:50%;background:#ef4444;z-index:30;
-    border:2px solid rgba(255,255,255,0.3);box-shadow:0 0 8px #ef4444;
-    left:${spBotPos.x}px;top:${spBotPos.y}px;`;
-  gc.appendChild(bav);
-
-  // HUD
-  const pl=document.getElementById('playerList');pl.innerHTML='';
-  [{name:myPlayer.name,hex:playerHex},{name:'BOT 🤖',hex:'#ef4444'}].forEach(p=>{
-    const div=document.createElement('div');
-    div.style.cssText=`border:1px solid ${p.hex};background:${p.hex}33;border-radius:8px;padding:4px 12px;font-size:13px;font-weight:600`;
-    div.innerText=p.name;pl.appendChild(div);
-  });
-  spUpdateHud();
-  document.getElementById('roundTimer').innerText='60s';
-
-  // Camera snap
-  const vw=gcWrap.clientWidth,vh=gcWrap.clientHeight;
-  let cx=spPlayerPos.x+24-vw/2,cy=spPlayerPos.y+24-vh/2;
-  cx=Math.max(0,Math.min(cx,mapW-vw));cy=Math.max(0,Math.min(cy,mapH-vh));
-  gc.style.transform=`translate(${-cx}px,${-cy}px)`;
-
-  // Now start — set active LAST so tick doesn't fire during setup
-  spActive=true;
-  Audio.playSp();
-  clearInterval(spInterval);clearInterval(spCountdownInterval);
-  spInterval=setInterval(spTick,SP_TICK);
-  spCountdownInterval=setInterval(spCountdown,1000);
-}
-
-function spCountdown(){
-  if(!spActive)return;
-  spTimer--;
-  const el=document.getElementById('roundTimer');
-  if(el){el.innerText=`${spTimer}s`;el.style.color=spTimer<=10?'#ff4444':'#22d3ee';}
-  if(spTimer<=10&&spTimer>0)Audio.play('sfxCountdown',0.4);
-  if(spTimer<=0){
-    clearInterval(spInterval);clearInterval(spCountdownInterval);
-    spActive=false;Audio.fadeSp(1500);
-    showSpResults();
-  }
-}
-
-function spTick(){
-  if(!spActive)return;
-  const obs=spObstacles;
-  const now=Date.now();
-
-  // ── Player movement ──────────────────────────────────────────────────────────
-  let px=spPlayerPos.x,py=spPlayerPos.y;
-  if(spKeys.up)    py-=SP_SPEED;
-  if(spKeys.down)  py+=SP_SPEED;
-  if(spKeys.left)  px-=SP_SPEED;
-  if(spKeys.right) px+=SP_SPEED;
-  px=spClamp(px,0,spMapW-SP_PLAYER_SIZE);
-  py=spClamp(py,0,spMapH-SP_PLAYER_SIZE);
-  if(!spCollides(px,spPlayerPos.y,obs))spPlayerPos.x=px;
-  if(!spCollides(spPlayerPos.x,py,obs))spPlayerPos.y=py;
-
-  // ── Bot steering ─────────────────────────────────────────────────────────────
-  {
-    const dx=spPlayerPos.x-spBotPos.x,dy=spPlayerPos.y-spBotPos.y;
-    const d=Math.hypot(dx,dy)||1;
-    const flip=spPlayerIt?-1:1;
-    let desiredX=(dx/d)*flip,desiredY=(dy/d)*flip;
-    const RAY_LEN=90,RAY_HALF=45;
-    const RAY_ANGLES=[0,-0.5,0.5,-1.1,1.1];
-    const botAngle=Math.atan2(desiredY,desiredX);
-    let avoidX=0,avoidY=0;
-    RAY_ANGLES.forEach((offset,i)=>{
-      const rayAngle=botAngle+offset;
-      const rayLen=i===0?RAY_LEN:RAY_HALF;
-      const weight=i===0?1.6:1.0;
-      for(let t2=0.3;t2<=1;t2+=0.35){
-        const sx=spBotPos.x+24+Math.cos(rayAngle)*rayLen*t2;
-        const sy=spBotPos.y+24+Math.sin(rayAngle)*rayLen*t2;
-        if(spCollides(sx-12,sy-12,obs,24)){
-          const proximity=1-t2;
-          avoidX-=Math.cos(rayAngle)*weight*proximity*2.5;
-          avoidY-=Math.sin(rayAngle)*weight*proximity*2.5;
-          break;
-        }
-      }
-    });
-    if(!spBotPos._lastX)spBotPos._lastX=spBotPos.x,spBotPos._lastY=spBotPos.y;
-    spBotPos._stuckTimer=(spBotPos._stuckTimer||0)+1;
-    if(spBotPos._stuckTimer>=40){
-      if(Math.hypot(spBotPos.x-spBotPos._lastX,spBotPos.y-spBotPos._lastY)<10){
-        spBotPos._nudgeX=(Math.random()-0.5)*3;spBotPos._nudgeY=(Math.random()-0.5)*3;spBotPos._nudgeTicks=20;
-      }
-      spBotPos._lastX=spBotPos.x;spBotPos._lastY=spBotPos.y;spBotPos._stuckTimer=0;
-    }
-    const nudgeX=spBotPos._nudgeTicks>0?spBotPos._nudgeX:0;
-    const nudgeY=spBotPos._nudgeTicks>0?spBotPos._nudgeY:0;
-    if(spBotPos._nudgeTicks>0)spBotPos._nudgeTicks--;
-    let steerX=desiredX+avoidX+nudgeX,steerY=desiredY+avoidY+nudgeY;
-    const sl=Math.hypot(steerX,steerY)||1;steerX/=sl;steerY/=sl;
-    spBotPos._vx=(spBotPos._vx||0)+(steerX-spBotPos._vx)*0.18;
-    spBotPos._vy=(spBotPos._vy||0)+(steerY-spBotPos._vy)*0.18;
-    let bx=spBotPos.x+spBotPos._vx*SP_BOT_SPEED;
-    let by=spBotPos.y+spBotPos._vy*SP_BOT_SPEED;
-    bx=spClamp(bx,0,spMapW-SP_PLAYER_SIZE);by=spClamp(by,0,spMapH-SP_PLAYER_SIZE);
-    if(!spCollides(bx,spBotPos.y,obs))spBotPos.x=bx;
-    if(!spCollides(spBotPos.x,by,obs))spBotPos.y=by;
-  }
-
-  // ── Tag ──────────────────────────────────────────────────────────────────────
-  const distPB=Math.hypot(spPlayerPos.x-spBotPos.x,spPlayerPos.y-spBotPos.y);
-  if(spPlayerIt){
-    spTaggedTime+=SP_TICK/1000;
-    if(distPB<SP_TAG_DIST){spPlayerIt=false;spHeadStart=now+5000;Audio.play('sfxTag',0.6);spUpdateHud();}
-  }else{
-    spBotTaggedTime+=SP_TICK/1000;
-    if(distPB<SP_TAG_DIST&&now>spHeadStart){spPlayerIt=true;Audio.play('sfxTag',0.6);spUpdateHud();}
-  }
-
-  // ── Update DOM ───────────────────────────────────────────────────────────────
-  const pav=document.getElementById('sp-player');
-  const bav=document.getElementById('sp-bot');
-  if(pav){pav.style.left=`${spPlayerPos.x}px`;pav.style.top=`${spPlayerPos.y}px`;}
-  if(bav){bav.style.left=`${spBotPos.x}px`;bav.style.top=`${spBotPos.y}px`;}
-
-  // ── Camera ───────────────────────────────────────────────────────────────────
-  const wrap=document.getElementById('gameCanvas');
-  const world=document.getElementById('gameWorld');
-  if(wrap&&world){
-    const vw=wrap.clientWidth,vh=wrap.clientHeight;
-    let cx=spPlayerPos.x+24-vw/2,cy=spPlayerPos.y+24-vh/2;
-    cx=Math.max(0,Math.min(cx,spMapW-vw));cy=Math.max(0,Math.min(cy,spMapH-vh));
-    world.style.transform=`translate(${-cx}px,${-cy}px)`;
-  }
-}
-
-function spUpdateHud(){
-  const st=document.getElementById('playerStatus');
-  if(st){st.innerText=spPlayerIt?'IT':'SAFE';st.style.color=spPlayerIt?'#ff4444':'#00ff88';}
-  const pav=document.getElementById('sp-player');
-  const bav=document.getElementById('sp-bot');
-  if(pav){
-    pav.style.border=spPlayerIt?'3px solid white':'2px solid rgba(255,255,255,0.3)';
-    const hex=colors.find(c=>c.name===myPlayer.color)?.bg||'#06b6d4';
-    pav.style.boxShadow=`0 0 ${spPlayerIt?22:8}px ${hex}`;
-  }
-  if(bav){
-    bav.style.border=!spPlayerIt?'3px solid white':'2px solid rgba(255,255,255,0.3)';
-    bav.style.boxShadow=`0 0 ${!spPlayerIt?22:8}px #ef4444`;
-  }
-}
-
-function showSpResults(){
-  switchScreen('resultsScreen');
-  const spBtnEl=document.getElementById('spMenuBtn');if(spBtnEl)spBtnEl.style.display='none';
-  const rt=document.getElementById('resultsTable');rt.innerHTML='';
-  const playerHex=colors.find(c=>c.name===myPlayer.color)?.bg||'#06b6d4';
-  const results=[
-    {name:myPlayer.name,taggedTime:spTaggedTime,hex:playerHex,isMe:true},
-    {name:'BOT 🤖',taggedTime:spBotTaggedTime,hex:'#ef4444',isMe:false},
-  ].sort((a,b)=>a.taggedTime-b.taggedTime);
-  const medals=['🥇','🥈'];
-  results.forEach((p,i)=>{
-    const isTop=i===0;
-    const div=document.createElement('div');
-    div.style.cssText=`display:flex;justify-content:space-between;align-items:center;padding:14px 12px;margin:4px 0;border-radius:10px;border:1px solid ${isTop?'#00ff88':'rgba(255,255,255,0.08)'};background:${isTop?'rgba(0,255,136,0.07)':p.isMe?'rgba(255,255,255,0.04)':'transparent'};`;
-    div.innerHTML=`<div style="display:flex;align-items:center;gap:12px"><span style="font-size:22px">${medals[i]}</span><div style="width:30px;height:30px;border-radius:50%;background:${p.hex};box-shadow:0 0 10px ${p.hex}88;flex-shrink:0"></div><div><span style="font-weight:700;font-size:17px;color:${p.isMe?p.hex:'#fff'}">${p.name}</span>${isTop?'<div style="font-size:11px;color:#00ff88;font-weight:600">LEAST TIME TAGGED</div>':''}</div></div><div style="text-align:right"><div style="font-size:20px;font-weight:700;font-family:\'Orbitron\',sans-serif;color:${isTop?'#00ff88':'rgba(255,255,255,0.7)'}">${p.taggedTime.toFixed(1)}s</div><div style="font-size:11px;color:rgba(255,255,255,0.3)">as IT</div></div>`;
-    rt.appendChild(div);
-  });
-  const playerWon=results[0].isMe;
-  const titleEl=document.getElementById('resultTitle');
-  titleEl.innerText=playerWon?'YOU WIN! 🏆':'BOT WINS 🤖';
-  titleEl.style.color=playerWon?'#00ff88':'#ff4444';
-  setTimeout(()=>Audio.play(playerWon?'sfxWin':'sfxLose',0.8),400);
-}
-
-function spStop(){
-  clearInterval(spInterval);clearInterval(spCountdownInterval);
-  spActive=false;spKeys.up=false;spKeys.down=false;spKeys.left=false;spKeys.right=false;
-  const spBtnEl=document.getElementById('spMenuBtn');if(spBtnEl)spBtnEl.style.display='none';
-  Audio.stopSp();Audio.playMenu();
-  switchScreen('mainMenu');currentLobby='';isHost=false;
-}
 
 // ─── Multiplayer bot support ──────────────────────────────────────────────────
 // Host can add a bot slot in the lobby; server controls the bot
@@ -632,10 +340,8 @@ socket.on('joinedLobby',()=>{
 
 // ─── Multiplayer game ─────────────────────────────────────────────────────────
 socket.on('gameStart',({players,map,obstacles,powerups,speedPads,mapW,mapH})=>{
-  spActive=false;
   stopTargeting();
   switchScreen('gameScreen');Audio.stopBg();Audio.playBg();
-  const spBtnEl=document.getElementById('spMenuBtn');if(spBtnEl)spBtnEl.style.display='none';
   Object.keys(powerupEls).forEach(k=>delete powerupEls[k]);
 
   const gcWrap=document.getElementById('gameCanvas');
@@ -788,29 +494,25 @@ socket.on('gameEnd',players=>{
 // ─── Keyboard — multiplayer ───────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
   if(isTyping(e))return;
-  for(const d in keysMap)if(keysMap[d].includes(e.key)){e.preventDefault();
-    if(spActive)spKeys[d]=true;else keyState[d]=true;
-  }
+  for(const d in keysMap)if(keysMap[d].includes(e.key)){e.preventDefault();keyState[d]=true;}
 });
 document.addEventListener('keyup',e=>{
-  for(const d in keysMap)if(keysMap[d].includes(e.key)){
-    spKeys[d]=false;keyState[d]=false;
-  }
+  for(const d in keysMap)if(keysMap[d].includes(e.key))keyState[d]=false;
 });
 
 // ─── On-screen buttons ────────────────────────────────────────────────────────
 ['up','down','left','right'].forEach(dir=>{
   const btn=document.getElementById(`${dir}Btn`);
-  btn.addEventListener('touchstart',e=>{e.preventDefault();if(spActive)spKeys[dir]=true;else keyState[dir]=true;});
-  btn.addEventListener('touchend',  e=>{e.preventDefault();spKeys[dir]=false;keyState[dir]=false;});
-  btn.addEventListener('mousedown', ()=>{if(spActive)spKeys[dir]=true;else keyState[dir]=true;});
-  btn.addEventListener('mouseup',   ()=>{spKeys[dir]=false;keyState[dir]=false;});
-  btn.addEventListener('mouseleave',()=>{spKeys[dir]=false;keyState[dir]=false;});
+  btn.addEventListener('touchstart',e=>{e.preventDefault();keyState[dir]=true;});
+  btn.addEventListener('touchend',  e=>{e.preventDefault();keyState[dir]=false;});
+  btn.addEventListener('mousedown', ()=>{keyState[dir]=true;});
+  btn.addEventListener('mouseup',   ()=>{keyState[dir]=false;});
+  btn.addEventListener('mouseleave',()=>{keyState[dir]=false;});
 });
 
 // ─── Multiplayer move sender ──────────────────────────────────────────────────
 setInterval(()=>{
-  if(!currentLobby||spActive)return;
+  if(!currentLobby)return;
   for(const d in keyState)if(keyState[d])socket.emit('move',currentLobby,d);
 },50);
 
@@ -820,14 +522,12 @@ document.getElementById('leaveLobbyBtn').onclick=()=>{
   switchScreen('mainMenu');currentLobby='';isHost=false;
 };
 document.getElementById('playAgainBtn').onclick=()=>{
-  if(spActive){spStop();return;}
-  Audio.stopBg();Audio.stopSp();Audio.playMenu();
+  Audio.stopBg();Audio.playMenu();
   switchScreen('mainMenu');currentLobby='';isHost=false;
 };
-document.getElementById('spMenuBtn')?.addEventListener('click',spStop);
 
 function switchScreen(id){
-  ['mainMenu','spMapScreen','lobbyScreen','gameScreen','resultsScreen'].forEach(s=>{
+  ['mainMenu','lobbyScreen','gameScreen','resultsScreen'].forEach(s=>{
     const el=document.getElementById(s);if(el)el.classList.add('hidden');
   });
   const el=document.getElementById(id);if(el)el.classList.remove('hidden');
@@ -836,17 +536,8 @@ socket.on('error',msg=>alert('Error: '+msg));
 
 // ─── DOMContentLoaded ─────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded',()=>{
-  buildSpMapSelect();
 
-  const spBtn=document.getElementById('singlePlayerBtn');
-  if(spBtn)spBtn.onclick=()=>{
-    myPlayer.name=document.getElementById('playerNameInput').value.trim()||'Player';
-    if(!myPlayer.color)myPlayer.color='cyan';
-    switchScreen('spMapScreen');
-  };
-  document.getElementById('spBackBtn')?.addEventListener('click',()=>switchScreen('mainMenu'));
-
-  // Add Bot button in lobby (host only)
+  // ── Add Bot button in lobby (host only) ────────────────────────────────────
   const startRow=document.querySelector('#startGameBtn')?.parentElement;
   if(startRow){
     const addBotBtn=document.createElement('button');
@@ -859,29 +550,38 @@ window.addEventListener('DOMContentLoaded',()=>{
     startRow.appendChild(addBotBtn);
   }
 
-  // Universal music volume button
+  // ── Music button (replaces settings, top-right corner) ─────────────────────
   const musicBtn=document.createElement('button');
   musicBtn.id='musicBtn';
   musicBtn.title='Music volume';
-  musicBtn.style.cssText=`position:fixed;top:62px;right:14px;z-index:999;
+  musicBtn.style.cssText=`position:fixed;top:14px;right:14px;z-index:999;
     background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);
-    color:#fff;font-size:16px;width:42px;height:42px;border-radius:10px;
+    color:#fff;font-size:20px;width:42px;height:42px;border-radius:10px;
     cursor:pointer;backdrop-filter:blur(6px);transition:background .2s;`;
   musicBtn.innerText='🔊';
+  musicBtn.onmouseover=()=>musicBtn.style.background='rgba(255,255,255,0.18)';
+  musicBtn.onmouseout =()=>musicBtn.style.background='rgba(255,255,255,0.08)';
   document.body.appendChild(musicBtn);
 
   const musicPanel=document.createElement('div');
   musicPanel.id='musicPanel';
-  musicPanel.style.cssText=`display:none;position:fixed;top:108px;right:14px;z-index:998;
+  musicPanel.style.cssText=`display:none;position:fixed;top:60px;right:14px;z-index:998;
     background:rgba(10,14,39,0.97);border:1px solid rgba(255,255,255,0.15);
-    border-radius:12px;padding:16px 20px;min-width:200px;backdrop-filter:blur(12px);`;
-  musicPanel.innerHTML=`<div style="font-size:11px;font-weight:700;color:#00ff88;margin-bottom:12px;letter-spacing:1px;">🔊 MUSIC VOLUME</div>
+    border-radius:14px;padding:18px 22px;min-width:220px;
+    backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,0.5);`;
+  musicPanel.innerHTML=`
+    <div style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:#00ff88;margin-bottom:14px;letter-spacing:1px;">🔊 MUSIC VOLUME</div>
     <input type="range" id="masterVolSlider" min="0" max="100" value="100"
       style="width:100%;accent-color:#00ff88;cursor:pointer;">
-    <div style="text-align:right;font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;"><span id="masterVolVal">100</span>%</div>`;
+    <div style="text-align:right;font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;">
+      <span id="masterVolVal">100</span>%
+    </div>`;
   document.body.appendChild(musicPanel);
 
-  musicBtn.onclick=e=>{e.stopPropagation();musicPanel.style.display=musicPanel.style.display==='none'?'block':'none';};
+  musicBtn.onclick=e=>{
+    e.stopPropagation();
+    musicPanel.style.display=musicPanel.style.display==='none'?'block':'none';
+  };
   document.addEventListener('click',()=>{musicPanel.style.display='none';});
   musicPanel.addEventListener('click',e=>e.stopPropagation());
   document.getElementById('masterVolSlider').addEventListener('input',function(){
@@ -890,39 +590,15 @@ window.addEventListener('DOMContentLoaded',()=>{
     musicBtn.innerText=this.value==0?'🔇':this.value<50?'🔉':'🔊';
   });
 
-  // Settings button
-  const settingsBtn=document.createElement('button');settingsBtn.id='settingsBtn';settingsBtn.innerText='⚙️';
-  settingsBtn.style.cssText=`position:fixed;top:14px;right:14px;z-index:999;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:20px;width:42px;height:42px;border-radius:10px;cursor:pointer;backdrop-filter:blur(6px);transition:background .2s;`;
-  settingsBtn.onmouseover=()=>settingsBtn.style.background='rgba(255,255,255,0.18)';
-  settingsBtn.onmouseout =()=>settingsBtn.style.background='rgba(255,255,255,0.08)';
-  document.body.appendChild(settingsBtn);
-
-  const panel=document.createElement('div');panel.id='settingsPanel';
-  panel.style.cssText=`display:none;position:fixed;top:60px;right:60px;z-index:998;background:rgba(10,14,39,0.97);border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:20px 24px;min-width:240px;backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,0.5);`;
-  panel.innerHTML=`<div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#00ff88;margin-bottom:16px;letter-spacing:1px;">⚙️ SETTINGS</div>
-    <div style="margin-bottom:14px;"><label style="font-size:13px;color:rgba(255,255,255,0.6);display:block;margin-bottom:6px;">🎵 Menu Music</label>
-    <input type="range" id="menuVolSlider" min="0" max="100" value="30" style="width:100%;accent-color:#00ff88;cursor:pointer;">
-    <div style="text-align:right;font-size:11px;color:rgba(255,255,255,0.4)"><span id="menuVolVal">30</span>%</div></div>
-    <div style="margin-bottom:14px;"><label style="font-size:13px;color:rgba(255,255,255,0.6);display:block;margin-bottom:6px;">🎮 Game Music</label>
-    <input type="range" id="bgVolSlider" min="0" max="100" value="35" style="width:100%;accent-color:#00ff88;cursor:pointer;">
-    <div style="text-align:right;font-size:11px;color:rgba(255,255,255,0.4)"><span id="bgVolVal">35</span>%</div></div>
-    <div><label style="font-size:13px;color:rgba(255,255,255,0.6);display:block;margin-bottom:6px;">🤖 SP Music</label>
-    <input type="range" id="spVolSlider" min="0" max="100" value="35" style="width:100%;accent-color:#2dd4bf;cursor:pointer;">
-    <div style="text-align:right;font-size:11px;color:rgba(255,255,255,0.4)"><span id="spVolVal">35</span>%</div></div>`;
-  document.body.appendChild(panel);
-  settingsBtn.onclick=e=>{e.stopPropagation();panel.style.display=panel.style.display==='none'?'block':'none';};
-  document.addEventListener('click',()=>{panel.style.display='none';});
-  panel.addEventListener('click',e=>e.stopPropagation());
-  document.getElementById('menuVolSlider').addEventListener('input',function(){document.getElementById('menuVolVal').innerText=this.value;const el=document.getElementById('menuMusic');if(el)el.volume=this.value/100*masterVolume;});
-  document.getElementById('bgVolSlider').addEventListener('input',function(){document.getElementById('bgVolVal').innerText=this.value;const el=document.getElementById('bgMusic');if(el)el.volume=this.value/100*masterVolume;});
-  document.getElementById('spVolSlider').addEventListener('input',function(){document.getElementById('spVolVal').innerText=this.value;const el=document.getElementById('spMusic');if(el)el.volume=this.value/100*masterVolume;});
-
-  // Lang button
-  const btn=document.createElement('button');btn.id='langBtn';btn.innerText='🇪🇸 Español';
-  btn.style.cssText=`position:fixed;top:14px;left:14px;z-index:999;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;padding:8px 14px;border-radius:10px;cursor:pointer;backdrop-filter:blur(6px);transition:background .2s;`;
-  btn.onmouseover=()=>btn.style.background='rgba(255,255,255,0.18)';
-  btn.onmouseout =()=>btn.style.background='rgba(255,255,255,0.08)';
-  btn.onclick=()=>applyLang(currentLang==='en'?'es':'en');
-  document.body.appendChild(btn);
+  // ── Language button (top-left) ──────────────────────────────────────────────
+  const langBtn=document.createElement('button');langBtn.id='langBtn';langBtn.innerText='🇪🇸 Español';
+  langBtn.style.cssText=`position:fixed;top:14px;left:14px;z-index:999;
+    background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);
+    color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;
+    padding:8px 14px;border-radius:10px;cursor:pointer;backdrop-filter:blur(6px);transition:background .2s;`;
+  langBtn.onmouseover=()=>langBtn.style.background='rgba(255,255,255,0.18)';
+  langBtn.onmouseout =()=>langBtn.style.background='rgba(255,255,255,0.08)';
+  langBtn.onclick=()=>applyLang(currentLang==='en'?'es':'en');
+  document.body.appendChild(langBtn);
   applyLang('en');
 });
